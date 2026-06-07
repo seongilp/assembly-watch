@@ -4,16 +4,27 @@ import type { ScheduleItem } from "#shared/types";
 import { formatDate, relativeDay } from "~/lib/format";
 
 const upcoming = ref(true);
-const mounted = useMounted(); // 상대시간(D-day)은 클라이언트에서만 → 프리렌더 안전
+const mounted = useMounted(); // 날짜 계산은 클라이언트에서만 → 프리렌더 하이드레이션 안전
 
+// 전체 일정을 1회만 로드(프리렌더 페이로드) → 예정/전체 토글은 클라이언트(즉시)
 const { data, pending, error } = await useFetch<{ rows: ScheduleItem[] }>(
   "/api/schedule",
-  { query: { upcoming: computed(() => (upcoming.value ? 1 : 0)), size: 200 } },
+  { query: { upcoming: 0, size: 300 }, key: "schedule-all" },
 );
 
+const todayKey = computed(() =>
+  mounted.value ? new Date().toISOString().slice(0, 10).replace(/-/g, "") : "00000000",
+);
+const norm = (d: string) => d.replace(/[^0-9]/g, "").slice(0, 8);
+
 const grouped = computed(() => {
+  let rows = data.value?.rows ?? [];
+  if (upcoming.value) rows = rows.filter((s) => norm(s.date) >= todayKey.value);
+  const sorted = [...rows].sort((a, b) =>
+    upcoming.value ? norm(a.date).localeCompare(norm(b.date)) : norm(b.date).localeCompare(norm(a.date)),
+  );
   const map = new Map<string, ScheduleItem[]>();
-  for (const s of data.value?.rows ?? []) {
+  for (const s of sorted) {
     if (!map.has(s.date)) map.set(s.date, []);
     map.get(s.date)!.push(s);
   }
@@ -58,7 +69,7 @@ useHead({ title: "국회 일정 · 의정감시" });
     <DataState
       :pending="pending"
       :error="error"
-      :empty="!data?.rows?.length"
+      :empty="!grouped.length"
       empty-text="일정이 없습니다."
       :skeleton-rows="6"
     >
