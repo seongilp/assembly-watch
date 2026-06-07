@@ -7,10 +7,9 @@ const route = useRoute();
 const router = useRouter();
 const partyClr = usePartyColor();
 
-// 발의의원 이름→현직의원(사진/링크) 매핑
-const { data: membersData } = useFetch<{ rows: MemberListItem[] }>("/api/members", {
+// 발의의원 이름→현직의원(사진/링크) 매핑 (프리렌더 payload 에 인라인되도록 await)
+const { data: membersData } = await useFetch<{ rows: MemberListItem[] }>("/api/members", {
   key: "members",
-  lazy: true,
 });
 const memberByName = computed(
   () => new Map((membersData.value?.rows ?? []).map((r) => [r.name, r])),
