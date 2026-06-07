@@ -62,7 +62,7 @@ useHead({ title: "국회의원 · 의정감시" });
           class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
           :class="
             party === p
-              ? 'bg-toss-gray-900 text-white'
+              ? 'bg-foreground text-background'
               : 'bg-card text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
           "
           @click="party = p"

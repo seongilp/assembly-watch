@@ -8,6 +8,13 @@ const billId = computed(() => String(route.params.billId));
 
 const { data, pending, error } = await useFetch(`/api/votes/${billId.value}`);
 
+const view = ref<"list" | "party" | "region">("list");
+const VIEWS = [
+  { key: "list", label: "명단" },
+  { key: "party", label: "정당별" },
+  { key: "region", label: "지역별" },
+] as const;
+
 const resultFilter = ref<string>("전체");
 const partyFilter = ref<string>("전체");
 const search = ref("");
@@ -100,6 +107,27 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
         </div>
       </section>
 
+      <!-- 뷰 전환 -->
+      <div class="inline-flex rounded-2xl bg-toss-gray-100 p-1 mb-4">
+        <button
+          v-for="v in VIEWS"
+          :key="v.key"
+          class="rounded-xl px-4 sm:px-5 py-2 text-[14px] font-bold transition-all"
+          :class="view === v.key ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+          @click="view = v.key"
+        >
+          {{ v.label }}
+        </button>
+      </div>
+
+      <!-- 정당별 -->
+      <VoteByParty v-if="view === 'party'" :records="data?.rows ?? []" />
+
+      <!-- 지역별 -->
+      <VoteByRegion v-else-if="view === 'region'" :records="data?.rows ?? []" />
+
+      <!-- 명단 -->
+      <template v-else>
       <!-- 필터 -->
       <div class="space-y-3 mb-4">
         <div class="flex gap-1.5 flex-wrap">
@@ -115,7 +143,7 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
             :class="
               resultFilter === r
                 ? r === '전체'
-                  ? 'bg-toss-gray-900 text-white'
+                  ? 'bg-foreground text-background'
                   : ''
                 : 'bg-card text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
             "
@@ -175,6 +203,7 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
           </span>
         </div>
       </div>
+      </template>
     </DataState>
   </div>
 </template>

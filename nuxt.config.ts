@@ -58,35 +58,13 @@ export default defineNuxtConfig({
     },
   },
 
-  // 엣지 캐싱은 운영(Workers)에서만 — dev 는 항상 fresh SSR (정확한 개발)
-  //  - 페이지: SSR HTML 을 SWR 로 캐시 → 방문자는 엣지에서 즉시 수신, API 호출 0
-  //  - API: 클라이언트측(페이지네이션·검색·필터) 호출을 엣지에서 캐시
-  //  - 캐시 스토리지: KV 바인딩으로 영속화
+  // 운영(Workers) 캐싱
+  //  - 페이지 HTML 은 SWR 로 캐시하지 않음: 재배포 시 에셋 해시가 바뀌어
+  //    KV 에 남은 옛 HTML 이 사라진 /_nuxt/*.css 를 참조 → 스타일 깨짐을 유발.
+  //    페이지는 매번 fresh SSR (아래 API KV 캐시 덕에 충분히 빠름).
+  //  - API 응답은 defineCachedEventHandler 가 KV(CACHE 바인딩)에 영속 캐시
+  //    → 국회 Open API rate limit 보호 + 빠른 SSR.
   $production: {
-    routeRules: {
-      // pages
-      "/": { swr: 1800 },
-      "/members": { swr: 21600 },
-      "/members/**": { swr: 21600 },
-      "/committees": { swr: 21600 },
-      "/bills": { swr: 600 },
-      "/votes": { swr: 600 },
-      "/votes/**": { swr: 3600 },
-      "/schedule": { swr: 1800 },
-      // api
-      "/api/stats": { swr: 1800 },
-      "/api/members": { swr: 21600 },
-      "/api/committees": { swr: 21600 },
-      "/api/bills": { swr: 600 },
-      "/api/votes": { swr: 600 },
-      "/api/votes/**": { swr: 3600 },
-      "/api/schedule": { swr: 1800 },
-      "/api/members/**": { swr: 1800 },
-      // 정적 자산 장기 캐시 (해시 파일명 → immutable)
-      "/_nuxt/**": {
-        headers: { "cache-control": "public, max-age=31536000, immutable" },
-      },
-    },
     nitro: {
       storage: {
         cache: { driver: "cloudflare-kv-binding", binding: "CACHE" },
