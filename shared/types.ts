@@ -23,6 +23,15 @@ export interface Member {
   photo: string; // NAAS_PIC (ALLNAMEMBER 에서 보강)
 }
 
+/** 의원 표결 집계 (최근 본회의 기준) */
+export interface MemberTally {
+  y: number; // 찬성
+  n: number; // 반대
+  b: number; // 기권
+  a: number; // 불참
+  total: number;
+}
+
 /** 목록용 경량 의원 (리스트/대시보드/검색 — 페이로드 절감) */
 export interface MemberListItem {
   id: string;
@@ -33,6 +42,7 @@ export interface MemberListItem {
   reelection: string;
   committee: string;
   photo: string;
+  tally?: MemberTally;
 }
 
 export interface Bill {

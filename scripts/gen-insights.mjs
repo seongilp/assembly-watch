@@ -151,6 +151,14 @@ async function main() {
   writeFileSync(join(root, "server/assets/member-details.json"), JSON.stringify(details));
   console.log(`[gen-insights] 의원 상세 ${Object.keys(details).length}명 베이크`);
 
+  // 의원별 표결 집계(목록 카드용) id → {y,n,b,a,total}
+  const memberTally = {};
+  for (const [name, t] of tally) {
+    const m = byName.get(name);
+    if (m?.id) memberTally[m.id] = { y: t.yes, n: t.no, b: t.blank, a: t.absent, total: t.total };
+  }
+  writeFileSync(join(root, "server/assets/member-tally.json"), JSON.stringify(memberTally));
+
   const enrich = (name, extra) => {
     const m = byName.get(name) ?? { id: "", name, party: "", origin: "", photo: "" };
     return { ...m, ...extra };

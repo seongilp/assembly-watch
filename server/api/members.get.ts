@@ -1,7 +1,9 @@
-import type { MemberListItem } from "#shared/types";
+import type { MemberListItem, MemberTally } from "#shared/types";
 import photos from "../assets/member-photos.json";
+import tally from "../assets/member-tally.json";
 
 const PHOTOS = photos as Record<string, string>;
+const TALLY = tally as Record<string, MemberTally>;
 
 /** 현직 국회의원 목록 (경량 페이로드 + 정적 사진맵, 캐시 6시간) */
 export default defineCachedEventHandler(
@@ -16,6 +18,7 @@ export default defineCachedEventHandler(
       reelection: m.reelection,
       committee: m.committee,
       photo: PHOTOS[m.id] ?? "",
+      tally: TALLY[m.id],
     }));
     return { rows, totalCount: res.totalCount };
   },
