@@ -50,12 +50,15 @@ async function main() {
   await Promise.all(
     standing.map(async (c) => {
       try {
-        const r = await fetch(
-          `https://open.assembly.go.kr/portal/openapi/ncwgseseafwbuheph?KEY=${KEY}&Type=json&pSize=60&DAE_NUM=22&CONF_DATE=${year}&COMM_NAME=${encodeURIComponent(c.name)}`,
-          { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } },
-        );
-        const j = JSON.parse(await r.text());
-        const mrows = j?.ncwgseseafwbuheph?.[1]?.row ?? [];
+        const fetchYear = async (y) => {
+          const r = await fetch(
+            `https://open.assembly.go.kr/portal/openapi/ncwgseseafwbuheph?KEY=${KEY}&Type=json&pSize=60&DAE_NUM=22&CONF_DATE=${y}&COMM_NAME=${encodeURIComponent(c.name)}`,
+            { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } },
+          );
+          const j = JSON.parse(await r.text());
+          return j?.ncwgseseafwbuheph?.[1]?.row ?? [];
+        };
+        const mrows = [...(await fetchYear(year)), ...(await fetchYear(year - 1))];
         const seenC = new Set();
         c.minutes = mrows
           .map((m) => ({

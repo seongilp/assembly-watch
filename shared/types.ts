@@ -125,6 +125,15 @@ export interface CommitteeDetail {
   minutes: CommitteeMinute[];
 }
 
+/** 위원회 목록 항목 (상임위는 최근 회의록 포함) */
+export interface CommitteeListItem {
+  deptCd: string;
+  name: string;
+  div: string;
+  limit: number | null;
+  minutes?: CommitteeMinute[];
+}
+
 export interface Paged<T> {
   rows: T[];
   totalCount: number;

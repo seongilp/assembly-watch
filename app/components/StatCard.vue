@@ -42,8 +42,7 @@ const tag = computed(() => (props.to ? NuxtLink : "div"));
     <div class="flex items-start justify-between">
       <span class="text-[13px] font-semibold text-toss-gray-500">{{ label }}</span>
       <div
-        class="grid place-items-center size-9 rounded-xl"
-        :style="{ backgroundColor: accentColor + '24', color: accentColor }"
+        class="grid place-items-center size-9 rounded-xl bg-toss-gray-100 text-toss-gray-500"
       >
         <component :is="icon" class="size-[18px]" />
       </div>

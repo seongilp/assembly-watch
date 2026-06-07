@@ -1,10 +1,12 @@
-import type { Committee } from "#shared/types";
+import type { CommitteeListItem } from "#shared/types";
+import committees from "../assets/committees.json";
 
-/** 위원회 현황 (캐시 6시간) */
-export default defineCachedEventHandler(
-  async (): Promise<{ rows: Committee[]; totalCount: number }> => {
-    const res = await fetchAssembly(API.COMMITTEES, { pIndex: 1, pSize: 100 });
-    return { rows: res.rows.map(mapCommittee), totalCount: res.totalCount };
-  },
-  { maxAge: 60 * 60 * 6, name: "committees", getKey: () => "all" },
+const LIST = committees as CommitteeListItem[];
+
+/** 위원회 현황 (빌드타임 베이크 — 상임위는 최근 회의록 포함) */
+export default defineEventHandler(
+  (): { rows: CommitteeListItem[]; totalCount: number } => ({
+    rows: LIST,
+    totalCount: LIST.length,
+  }),
 );

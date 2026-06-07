@@ -16,6 +16,8 @@ const failed = ref(false);
 const src = computed(() =>
   props.photo && !failed.value ? memberPhoto(props.photo, props.size) : "",
 );
+// 큰 아바타(상세 프로필)는 즉시 로드, 작은 목록은 lazy
+const big = computed(() => props.size >= 64);
 </script>
 
 <template>
@@ -32,7 +34,8 @@ const src = computed(() =>
       v-if="src"
       :src="src"
       :alt="name"
-      loading="lazy"
+      :loading="big ? 'eager' : 'lazy'"
+      :fetchpriority="big ? 'high' : 'auto'"
       decoding="async"
       class="absolute inset-0 size-full object-cover object-top"
       @error="failed = true"
