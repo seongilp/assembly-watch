@@ -27,24 +27,13 @@ export default defineCachedEventHandler(
     }
 
     const year = new Date().getFullYear();
+    // 개별 호출 실패가 전체 502 로 번지지 않도록 방어 (빈 배열 폴백)
+    const safe = (p: Promise<{ rows: Record<string, unknown>[] }>) =>
+      p.catch(() => ({ rows: [] as Record<string, unknown>[] }));
     const [sch, min, minPrev] = await Promise.all([
-      fetchAssembly(API.COMMITTEE_SCHEDULE, {
-        UNIT_CD: `1000${AGE}`,
-        HR_DEPT_CD: deptCd,
-        pSize: 100,
-      }),
-      fetchAssembly(API.COMMITTEE_MINUTES, {
-        DAE_NUM: AGE,
-        CONF_DATE: year,
-        COMM_NAME: committee.name,
-        pSize: 100,
-      }),
-      fetchAssembly(API.COMMITTEE_MINUTES, {
-        DAE_NUM: AGE,
-        CONF_DATE: year - 1,
-        COMM_NAME: committee.name,
-        pSize: 100,
-      }),
+      safe(fetchAssembly(API.COMMITTEE_SCHEDULE, { UNIT_CD: `1000${AGE}`, HR_DEPT_CD: deptCd, pSize: 60 })),
+      safe(fetchAssembly(API.COMMITTEE_MINUTES, { DAE_NUM: AGE, CONF_DATE: year, COMM_NAME: committee.name, pSize: 80 })),
+      safe(fetchAssembly(API.COMMITTEE_MINUTES, { DAE_NUM: AGE, CONF_DATE: year - 1, COMM_NAME: committee.name, pSize: 80 })),
     ]);
 
     const schedule: CommitteeMeeting[] = sch.rows
@@ -56,7 +45,8 @@ export default defineCachedEventHandler(
         agenda: s(r.ANGUN)
           .split(/<br\s*\/?>/i)
           .map((x) => x.trim())
-          .filter(Boolean),
+          .filter(Boolean)
+          .slice(0, 25),
         link: s(r.LINK_URL2),
       }))
       .sort((a, b) => b.date.localeCompare(a.date))
