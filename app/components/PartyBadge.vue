@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { partyColor, normalizeParty } from "~/lib/party";
+import { normalizeParty } from "~/lib/party";
 
 const props = withDefaults(
   defineProps<{ party: string; dot?: boolean; size?: "sm" | "md" }>(),
   { dot: true, size: "md" },
 );
+const partyColor = usePartyColor();
 const name = computed(() => normalizeParty(props.party));
 const color = computed(() => partyColor(props.party));
 </script>

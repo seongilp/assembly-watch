@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ArrowLeft, ExternalLink, Search } from "lucide-vue-next";
-import { normalizeParty, partyColor } from "~/lib/party";
+import { normalizeParty } from "~/lib/party";
 import { formatDateTime, voteStyle } from "~/lib/format";
+
+const partyColor = usePartyColor();
 
 const route = useRoute();
 const billId = computed(() => String(route.params.billId));

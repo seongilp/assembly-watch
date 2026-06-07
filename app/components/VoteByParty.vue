@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { VoteRecord } from "#shared/types";
-import { normalizeParty, partyColor } from "~/lib/party";
+import { normalizeParty } from "~/lib/party";
 import { voteStyle } from "~/lib/format";
 
 const props = defineProps<{ records: VoteRecord[] }>();
+const partyColor = usePartyColor();
 
 const RESULT_COLORS: Record<string, string> = {
   찬성: "#3182F6",

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { partyColor } from "~/lib/party";
 import { formatNumber } from "~/lib/format";
+
+const partyColor = usePartyColor();
 
 const props = defineProps<{ data: { party: string; count: number }[] }>();
 

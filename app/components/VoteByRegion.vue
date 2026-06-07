@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { VoteRecord } from "#shared/types";
 import { regionOf, regionRank } from "~/lib/region";
-import { normalizeParty, partyColor } from "~/lib/party";
+import { normalizeParty } from "~/lib/party";
 import { voteStyle, resultFill } from "~/lib/format";
 
 const props = defineProps<{ records: VoteRecord[] }>();
+const partyColor = usePartyColor();
 
 const RESULT_ORDER = ["찬성", "반대", "기권", "불참"] as const;
 

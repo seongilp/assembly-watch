@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { partyColor } from "~/lib/party";
+import { memberPhoto } from "~/lib/img";
 
 const props = withDefaults(
   defineProps<{
@@ -11,8 +11,11 @@ const props = withDefaults(
   { size: 48, photo: "" },
 );
 
+const partyColor = usePartyColor();
 const failed = ref(false);
-const showImg = computed(() => props.photo && !failed.value);
+const src = computed(() =>
+  props.photo && !failed.value ? memberPhoto(props.photo, props.size) : "",
+);
 </script>
 
 <template>
@@ -26,8 +29,8 @@ const showImg = computed(() => props.photo && !failed.value);
     }"
   >
     <img
-      v-if="showImg"
-      :src="photo"
+      v-if="src"
+      :src="src"
       :alt="name"
       loading="lazy"
       decoding="async"

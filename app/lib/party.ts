@@ -26,6 +26,22 @@ const FALLBACK_COLORS = [
   "#EC4899",
 ];
 
+/** 다크모드 전용 밝은 톤 (어두운 정당색 가독성 보정) */
+const PARTY_DARK: Record<string, string> = {
+  더불어민주당: "#5B7BF0",
+  무소속: "#9AA3AE",
+  진보당: "#FF4D63",
+};
+
+/** 다크 여부에 따른 정당색 */
+export function partyColorMode(party: string, dark: boolean): string {
+  if (dark) {
+    const key = (party || "").split("/")[0]?.trim() ?? "";
+    if (PARTY_DARK[key]) return PARTY_DARK[key];
+  }
+  return partyColor(party);
+}
+
 export function partyColor(party: string): string {
   const key = (party || "").split("/")[0]?.trim() ?? "";
   if (PARTY_MAP[key]) return PARTY_MAP[key].color;
