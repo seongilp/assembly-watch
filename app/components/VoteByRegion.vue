@@ -53,9 +53,17 @@ const tiles = computed(() =>
   ),
 );
 
+const mode = ref<"map" | "tile">("map");
 const selected = ref<string | null>(null);
 const selectedStat = computed(() =>
   selected.value ? stats.value[selected.value] : null,
+);
+
+// Kakao 지도 오버레이용 (중심좌표가 있는 시도만)
+const mapRegions = computed(() =>
+  tiles.value
+    .filter((s) => s.region !== "비례" && s.region !== "기타")
+    .map((s) => ({ region: s.region, total: s.total, rate: s.rate })),
 );
 
 function tileStyle(s: RegionStat) {
@@ -72,20 +80,44 @@ function tileStyle(s: RegionStat) {
 
 <template>
   <div>
-    <!-- 범례 -->
+    <!-- 지도/타일 토글 + 범례 -->
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
-      <p class="text-[13px] text-toss-gray-500">
-        시도별 찬성률 — 진할수록 찬성 비율이 높습니다. 타일을 누르면 해당 지역 의원을 봅니다.
-      </p>
+      <div class="inline-flex rounded-xl bg-toss-gray-100 p-0.5">
+        <button
+          v-for="m in (['map', 'tile'] as const)"
+          :key="m"
+          class="rounded-lg px-3 py-1.5 text-[13px] font-bold transition-all"
+          :class="mode === m ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+          @click="mode = m"
+        >
+          {{ m === "map" ? "지도" : "타일" }}
+        </button>
+      </div>
       <div class="flex items-center gap-1.5 text-[11px] text-toss-gray-400">
-        <span>낮음</span>
-        <span class="h-2.5 w-24 rounded-full" style="background: linear-gradient(90deg, rgba(49,130,246,0.16), rgba(49,130,246,1))" />
+        <span>찬성률 낮음</span>
+        <span class="h-2.5 w-20 rounded-full" style="background: linear-gradient(90deg, rgba(49,130,246,0.3), rgba(49,130,246,1))" />
         <span>높음</span>
       </div>
     </div>
 
+    <!-- Kakao 지도 오버레이 -->
+    <ClientOnly v-if="mode === 'map'">
+      <KakaoVoteMap
+        :regions="mapRegions"
+        :selected="selected"
+        @select="(r) => (selected = selected === r ? null : r)"
+        @error="mode = 'tile'"
+      />
+      <template #fallback>
+        <div class="h-[460px] grid place-items-center rounded-2xl bg-toss-gray-100 text-[13px] text-toss-gray-400">
+          지도 준비 중…
+        </div>
+      </template>
+    </ClientOnly>
+
     <!-- 타일 카토그램 -->
     <div
+      v-else
       class="grid gap-1.5 sm:gap-2"
       style="grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 1fr"
     >

@@ -47,6 +47,10 @@ export default defineNuxtConfig({
     // 로컬: .env 의 API_KEY / 운영: Worker secret NUXT_ASSEMBLY_API_KEY 로 주입
     assemblyApiKey:
       process.env.NUXT_ASSEMBLY_API_KEY || process.env.API_KEY || "",
+    public: {
+      // Kakao 지도 JavaScript 키 (클라이언트 노출 — 도메인 제한으로 보호)
+      kakaoMapKey: process.env.KAKAO_MAP_KEY || "",
+    },
   },
 
   // Cloudflare Workers (Static Assets) 배포 프리셋
