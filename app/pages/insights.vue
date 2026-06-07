@@ -29,6 +29,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.proposed ?? []"
         unit="건"
         accent="#3182F6"
+        crown="발의왕"
       />
       <RankingCard
         title="가장 적게 발의한 의원"
@@ -51,6 +52,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.yes ?? []"
         unit="회"
         accent="#3182F6"
+        crown="찬성왕"
       />
       <RankingCard
         title="가장 많이 반대한 의원"
@@ -58,6 +60,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.no ?? []"
         unit="회"
         accent="#F04452"
+        crown="반대왕"
       />
       <RankingCard
         title="가장 많이 기권한 의원"
@@ -73,6 +76,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.attendanceLow ?? []"
         metric="rate"
         accent="#D63A45"
+        crown="결석왕"
       />
     </div>
 

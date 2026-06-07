@@ -13,9 +13,11 @@ const { data: insights } = useFetch<Insights>("/api/insights", { key: "insights"
 const crownOf = computed(() => {
   const m: Record<string, string> = {};
   const a = insights.value;
-  if (a?.absent?.[0]?.id) m[a.absent[0].id] = "불참왕";
-  if (a?.blank?.[0]?.id) m[a.blank[0].id] = "기권왕";
   if (a?.proposed?.[0]?.id) m[a.proposed[0].id] = "발의왕";
+  if (a?.yes?.[0]?.id) m[a.yes[0].id] = "찬성왕";
+  if (a?.no?.[0]?.id) m[a.no[0].id] = "반대왕";
+  if (a?.blank?.[0]?.id) m[a.blank[0].id] = "기권왕";
+  if (a?.absent?.[0]?.id) m[a.absent[0].id] = "불참왕";
   return m;
 });
 

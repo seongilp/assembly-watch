@@ -32,9 +32,12 @@ const member = computed(() => data.value?.member ?? undefined);
 
 const titles = computed(() => {
   const t: string[] = [];
-  if (insights.value?.absent?.[0]?.id === id.value) t.push("불참왕");
-  if (insights.value?.blank?.[0]?.id === id.value) t.push("기권왕");
-  if (insights.value?.proposed?.[0]?.id === id.value) t.push("발의왕");
+  const a = insights.value;
+  if (a?.proposed?.[0]?.id === id.value) t.push("발의왕");
+  if (a?.yes?.[0]?.id === id.value) t.push("찬성왕");
+  if (a?.no?.[0]?.id === id.value) t.push("반대왕");
+  if (a?.blank?.[0]?.id === id.value) t.push("기권왕");
+  if (a?.absent?.[0]?.id === id.value) t.push("불참왕");
   return t;
 });
 const bills = computed(() => ({ rows: data.value?.bills ?? [] }));
