@@ -39,6 +39,14 @@ export function relativeDay(raw: string | null | undefined): string {
   return `${-diff}일 전`;
 }
 
+/** 표결 결과 → 채움 색 (와플/막대용 선명한 색) */
+export function resultFill(result: string): string {
+  if (result.includes("찬성")) return "#3182F6";
+  if (result.includes("반대")) return "#F04452";
+  if (result.includes("기권")) return "#FF9500";
+  return "#B0B8C1"; // 불참/기타
+}
+
 /** 표결 결과 → 색상/배경 */
 export function voteStyle(result: string): { fg: string; bg: string } {
   if (result.includes("찬성")) return { fg: "#1B64DA", bg: "#E8F3FF" };

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { VoteRecord } from "#shared/types";
-import { regionOf, REGION_TILE, regionRank } from "~/lib/region";
+import { regionOf, regionRank } from "~/lib/region";
 import { normalizeParty, partyColor } from "~/lib/party";
-import { voteStyle } from "~/lib/format";
+import { voteStyle, resultFill } from "~/lib/format";
 
 const props = defineProps<{ records: VoteRecord[] }>();
+
+const RESULT_ORDER = ["찬성", "반대", "기권", "불참"] as const;
 
 interface RegionStat {
   region: string;
@@ -13,8 +15,15 @@ interface RegionStat {
   no: number;
   blank: number;
   absent: number;
-  rate: number; // 찬성률 (투표 참여 대비)
-  members: VoteRecord[];
+  rate: number;
+  members: VoteRecord[]; // 결과순 정렬됨
+}
+
+function resultKey(r: string): (typeof RESULT_ORDER)[number] {
+  if (r.includes("찬성")) return "찬성";
+  if (r.includes("반대")) return "반대";
+  if (r.includes("기권")) return "기권";
+  return "불참";
 }
 
 const stats = computed<Record<string, RegionStat>>(() => {
@@ -22,32 +31,30 @@ const stats = computed<Record<string, RegionStat>>(() => {
   for (const r of props.records) {
     const reg = regionOf(r.origin);
     if (!map[reg])
-      map[reg] = {
-        region: reg,
-        total: 0,
-        yes: 0,
-        no: 0,
-        blank: 0,
-        absent: 0,
-        rate: 0,
-        members: [],
-      };
+      map[reg] = { region: reg, total: 0, yes: 0, no: 0, blank: 0, absent: 0, rate: 0, members: [] };
     const s = map[reg];
     s.total++;
     s.members.push(r);
-    if (r.result.includes("찬성")) s.yes++;
-    else if (r.result.includes("반대")) s.no++;
-    else if (r.result.includes("기권")) s.blank++;
+    const k = resultKey(r.result);
+    if (k === "찬성") s.yes++;
+    else if (k === "반대") s.no++;
+    else if (k === "기권") s.blank++;
     else s.absent++;
   }
   for (const s of Object.values(map)) {
     const voted = s.yes + s.no + s.blank;
     s.rate = voted ? s.yes / voted : 0;
+    // 와플이 색깔별로 모이도록 결과순 정렬
+    s.members.sort(
+      (a, b) =>
+        RESULT_ORDER.indexOf(resultKey(a.result)) -
+        RESULT_ORDER.indexOf(resultKey(b.result)),
+    );
   }
   return map;
 });
 
-const tiles = computed(() =>
+const regions = computed(() =>
   Object.values(stats.value).sort(
     (a, b) => regionRank(a.region) - regionRank(b.region),
   ),
@@ -59,23 +66,19 @@ const selectedStat = computed(() =>
   selected.value ? stats.value[selected.value] : null,
 );
 
-// Kakao 지도 오버레이용 (중심좌표가 있는 시도만)
+// Kakao 지도 오버레이용 (중심좌표 있는 시도만, 찬/반/기권/불참 포함)
 const mapRegions = computed(() =>
-  tiles.value
+  regions.value
     .filter((s) => s.region !== "비례" && s.region !== "기타")
-    .map((s) => ({ region: s.region, total: s.total, rate: s.rate })),
+    .map((s) => ({
+      region: s.region,
+      total: s.total,
+      yes: s.yes,
+      no: s.no,
+      blank: s.blank,
+      absent: s.absent,
+    })),
 );
-
-function tileStyle(s: RegionStat) {
-  const pos = REGION_TILE[s.region];
-  const alpha = 0.16 + 0.84 * s.rate; // 찬성률 높을수록 진한 블루
-  return {
-    gridRow: pos ? String(pos.r) : "auto",
-    gridColumn: pos ? String(pos.c) : "auto",
-    backgroundColor: `rgba(49, 130, 246, ${alpha.toFixed(3)})`,
-    color: alpha > 0.55 ? "#fff" : "var(--toss-gray-800)",
-  };
-}
 </script>
 
 <template>
@@ -93,10 +96,11 @@ function tileStyle(s: RegionStat) {
           {{ m === "map" ? "지도" : "타일" }}
         </button>
       </div>
-      <div class="flex items-center gap-1.5 text-[11px] text-toss-gray-400">
-        <span>찬성률 낮음</span>
-        <span class="h-2.5 w-20 rounded-full" style="background: linear-gradient(90deg, rgba(49,130,246,0.3), rgba(49,130,246,1))" />
-        <span>높음</span>
+      <div class="flex items-center gap-3 text-[12px] font-semibold">
+        <span class="inline-flex items-center gap-1 text-toss-gray-600"><span class="size-2.5 rounded-sm" style="background:#3182F6" />찬성</span>
+        <span class="inline-flex items-center gap-1 text-toss-gray-600"><span class="size-2.5 rounded-sm" style="background:#F04452" />반대</span>
+        <span class="inline-flex items-center gap-1 text-toss-gray-600"><span class="size-2.5 rounded-sm" style="background:#FF9500" />기권</span>
+        <span class="inline-flex items-center gap-1 text-toss-gray-600"><span class="size-2.5 rounded-sm" style="background:#B0B8C1" />불참</span>
       </div>
     </div>
 
@@ -115,32 +119,43 @@ function tileStyle(s: RegionStat) {
       </template>
     </ClientOnly>
 
-    <!-- 타일 카토그램 -->
-    <div
-      v-else
-      class="grid gap-1.5 sm:gap-2"
-      style="grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: 1fr"
-    >
+    <!-- 와플 타일: 의원 1명 = 네모 1개, 결과별 색 -->
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       <button
-        v-for="s in tiles"
+        v-for="s in regions"
         :key="s.region"
-        class="aspect-square rounded-xl p-1.5 flex flex-col items-center justify-center transition-all hover:scale-[1.05] hover:ring-2 hover:ring-toss-blue/40"
+        class="text-left rounded-2xl bg-card card-shadow p-4 transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
         :class="selected === s.region ? 'ring-2 ring-toss-blue' : ''"
-        :style="tileStyle(s)"
         @click="selected = selected === s.region ? null : s.region"
       >
-        <span class="text-[12px] sm:text-[13px] font-extrabold leading-none">{{ s.region }}</span>
-        <span class="mt-1 text-[10px] sm:text-[11px] font-bold opacity-90 tabular-nums"
-          >{{ Math.round(s.rate * 100) }}%</span
-        >
-        <span class="text-[9px] sm:text-[10px] opacity-75">{{ s.total }}명</span>
+        <div class="flex items-baseline justify-between mb-2">
+          <span class="text-[15px] font-bold text-toss-gray-900">{{ s.region }}</span>
+          <span class="text-[12px] text-toss-gray-400">{{ s.total }}명</span>
+        </div>
+        <!-- 와플 -->
+        <div class="flex flex-wrap gap-[3px] mb-2.5">
+          <span
+            v-for="(m, i) in s.members"
+            :key="i"
+            class="size-[11px] rounded-[3px]"
+            :style="{ backgroundColor: resultFill(m.result) }"
+            :title="`${m.name} · ${m.result}`"
+          />
+        </div>
+        <!-- 카운트 -->
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] font-bold">
+          <span v-if="s.yes" style="color:#3182F6">찬 {{ s.yes }}</span>
+          <span v-if="s.no" style="color:#F04452">반 {{ s.no }}</span>
+          <span v-if="s.blank" style="color:#FF9500">기권 {{ s.blank }}</span>
+          <span v-if="s.absent" style="color:#8B95A1">불참 {{ s.absent }}</span>
+        </div>
       </button>
     </div>
 
     <!-- 선택 지역 상세 -->
     <div class="mt-5">
       <div v-if="!selectedStat" class="text-center text-[13px] text-toss-gray-400 py-6">
-        지역 타일을 선택하면 해당 지역구 의원들의 표결을 볼 수 있습니다.
+        {{ mode === "map" ? "지도 버블" : "지역 카드" }}을 선택하면 해당 지역구 의원들의 표결을 볼 수 있습니다.
       </div>
       <div v-else class="rounded-2xl bg-card card-shadow p-5">
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -152,7 +167,7 @@ function tileStyle(s: RegionStat) {
             <span style="color:#3182F6">찬성 {{ selectedStat.yes }}</span>
             <span style="color:#F04452">반대 {{ selectedStat.no }}</span>
             <span style="color:#FF9500">기권 {{ selectedStat.blank }}</span>
-            <span style="color:#B0B8C1">불참 {{ selectedStat.absent }}</span>
+            <span style="color:#8B95A1">불참 {{ selectedStat.absent }}</span>
           </div>
         </div>
         <div class="flex flex-wrap gap-1.5">
