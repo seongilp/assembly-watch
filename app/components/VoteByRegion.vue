@@ -88,7 +88,7 @@ const mapRegions = computed(() =>
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
       <div class="inline-flex rounded-xl bg-toss-gray-100 p-0.5">
         <button
-          v-for="m in (['map', 'tile'] as const)"
+          v-for="m in (['tile', 'map'] as const)"
           :key="m"
           class="rounded-lg px-3 py-1.5 text-[13px] font-bold transition-all"
           :class="mode === m ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"

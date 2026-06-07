@@ -21,12 +21,22 @@ const memberPts = computed(() =>
             name: m.name,
             party: normalizeParty(m.party),
             color: partyColor(m.party),
+            origin: m.origin,
+            region: regionOf(m.origin),
             lat: c[0],
             lng: c[1],
           }
         : null;
     })
     .filter((x): x is NonNullable<typeof x> => !!x),
+);
+
+// 비례대표(지역 좌표 없음) — 별도 칩으로 모아 표시
+const proportional = computed(() =>
+  props.members
+    .filter((m) => regionOf(m.origin) === "비례")
+    .slice()
+    .sort((a, b) => normalizeParty(a.party).localeCompare(normalizeParty(b.party)) || a.name.localeCompare(b.name)),
 );
 
 interface RegionStat {
@@ -113,8 +123,7 @@ const mapRegions = computed(() =>
         :regions="mapRegions"
         :members="memberPts"
         :selected="selected"
-        @select="(r) => (selected = selected === r ? null : r)"
-        @member="(id) => navigateTo(`/members/${id}`)"
+        @select="(r) => (selected = r)"
         @error="mode = 'tile'"
       />
       <template #fallback>
@@ -200,6 +209,26 @@ const mapRegions = computed(() =>
             <PartyBadge :party="m.party" size="sm" :dot="false" />
           </NuxtLink>
         </div>
+      </div>
+    </div>
+
+    <!-- 비례대표 (지역구 없음) — 칩으로 모아 표시 -->
+    <div v-if="proportional.length" class="mt-5 rounded-2xl bg-card card-shadow p-5">
+      <h3 class="text-[15px] font-bold text-toss-gray-900 mb-3">
+        비례대표 <span class="text-[13px] font-medium text-toss-gray-400">{{ proportional.length }}명</span>
+        <span class="ml-1 text-[12px] font-medium text-toss-gray-400">· 지역구가 없어 지도에 표시되지 않습니다</span>
+      </h3>
+      <div class="flex flex-wrap gap-2">
+        <NuxtLink
+          v-for="m in proportional"
+          :key="m.id"
+          :to="`/members/${m.id}`"
+          class="group inline-flex items-center gap-2 rounded-full bg-toss-gray-50 py-1 pl-1 pr-3 transition-colors hover:bg-toss-gray-100"
+        >
+          <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="26" />
+          <span class="text-[13px] font-bold text-toss-gray-800 group-hover:text-toss-blue">{{ m.name }}</span>
+          <span class="text-[11px] font-semibold" :style="{ color: partyClr(m.party) }">{{ normalizeParty(m.party) }}</span>
+        </NuxtLink>
       </div>
     </div>
   </div>

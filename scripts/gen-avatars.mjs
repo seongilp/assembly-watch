@@ -45,26 +45,40 @@ async function main() {
   let ok = 0;
   let fail = 0;
   let idx = 0;
+  let skip = 0;
+  async function fetchOne(url) {
+    const res = await fetch(wsrv(url), {
+      headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length < 200) throw new Error("too small");
+    return buf;
+  }
   async function worker() {
     while (idx < targets.length) {
       const t = targets[idx++];
       const dest = join(OUT_DIR, `${t.id}.webp`);
+      if (existsSync(dest)) {
+        skip++;
+        continue;
+      } // 이미 구운 건 스킵(증분)
       try {
-        const res = await fetch(wsrv(t.url), {
-          headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" },
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const buf = Buffer.from(await res.arrayBuffer());
-        if (buf.length < 200) throw new Error("too small");
+        let buf;
+        try {
+          buf = await fetchOne(t.url);
+        } catch {
+          buf = await fetchOne(t.url); // 1회 재시도
+        }
         writeFileSync(dest, buf);
         ok++;
-      } catch (e) {
+      } catch {
         fail++;
       }
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  console.log(`[gen-avatars] ${ok}장 구움, 실패 ${fail} → public/m/`);
+  console.log(`[gen-avatars] ${ok}장 신규, ${skip}장 스킵, 실패 ${fail} → public/m/`);
 }
 
 main().catch((e) => {

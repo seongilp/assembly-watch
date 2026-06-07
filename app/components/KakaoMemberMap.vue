@@ -16,35 +16,35 @@ interface MemberPt {
   name: string;
   party: string;
   color: string;
+  origin: string; // 선거구명
+  region: string; // 시도
   lat: number;
   lng: number;
 }
 
 const props = defineProps<{
   regions: RegionStat[];
-  members: MemberPt[]; // 좌표 있는 의원(상세 마커용)
+  members: MemberPt[];
   selected: string | null;
 }>();
-const emit = defineEmits<{
-  select: [region: string];
-  member: [id: string];
-  error: [];
-}>();
+const emit = defineEmits<{ select: [region: string]; error: [] }>();
 
 const mapEl = ref<HTMLElement | null>(null);
 const status = ref<"loading" | "ready" | "error">("loading");
 let kakao: any = null;
 let map: any = null;
 let overlays: any[] = [];
+const focusedId = ref<string | null>(null);
 
-const DETAIL_LEVEL = 10; // 이보다 확대(작은 level)면 의원 얼굴 마커
+const FACE_LEVEL = 12; // 이보다 확대되고(작은 level) 화면이 붐비지 않으면 얼굴 마커
+const MAX_FACES = 90; // 화면에 이보다 많으면 버블로(과밀 방지)
 
 function clearOverlays() {
   overlays.forEach((o) => o.setMap(null));
   overlays = [];
 }
 
-// ── 시도 버블 HTML ──────────────────────────────
+// ── 시도 버블 ──────────────────────────────
 function bubbleHtml(s: RegionStat, active: boolean, ox: number, oy: number) {
   const seg = (g: Seg) =>
     g.count > 0
@@ -65,18 +65,35 @@ function bubbleHtml(s: RegionStat, active: boolean, ox: number, oy: number) {
     </div>`;
 }
 
-// ── 의원 얼굴 마커 HTML ─────────────────────────
-function faceHtml(m: MemberPt) {
+// ── 의원 얼굴 마커 (이니셜 폴백) ─────────────
+function faceHtml(m: MemberPt, focused: boolean) {
+  const initial = (m.name || "").slice(0, 1);
+  const size = focused ? 46 : 36;
+  const ring = focused ? "#3182F6" : m.color;
+  const bw = focused ? 3 : 2;
   return `
-    <div title="${m.name}" style="cursor:pointer;transform:translate(-50%,-50%);width:36px;height:36px;border-radius:50%;
-                background:${m.color};border:2px solid ${m.color};box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;">
-      <img src="/m/${m.id}.webp" alt="${m.name}" loading="lazy"
-           style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;"
-           onerror="this.style.display='none'" />
+    <div title="${m.name} · ${m.origin}" style="cursor:pointer;transform:translate(-50%,-50%);position:relative;
+                width:${size}px;height:${size}px;border-radius:50%;background:${m.color};border:${bw}px solid ${ring};
+                box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
+                color:#fff;font:700 ${Math.round(size * 0.4)}px Pretendard,sans-serif;">
+      <span style="position:absolute;">${initial}</span>
+      <img src="/m/${m.id}.webp" alt="${m.name}"
+           style="position:relative;width:100%;height:100%;object-fit:cover;object-position:top;display:block;"
+           onerror="this.remove()" />
     </div>`;
 }
 
-// 픽셀 좌표(컨테이너 기준)
+// 클릭한 의원의 선거구 라벨(지도 오버레이)
+function labelHtml(m: MemberPt) {
+  return `
+    <div style="transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
+                background:#191F28;color:#fff;border-radius:9px;padding:5px 9px;
+                box-shadow:0 3px 10px rgba(0,0,0,.35);font-family:Pretendard,sans-serif;">
+      <div style="font-size:12px;font-weight:800;">${m.name} <span style="font-weight:600;color:${m.color === "#152484" ? "#9DB2FF" : m.color};">${m.party}</span></div>
+      <div style="font-size:11px;color:#C9CDD2;margin-top:1px;">${m.origin}</div>
+    </div>`;
+}
+
 function px(lat: number, lng: number): { x: number; y: number } | null {
   try {
     const p = map.getProjection().containerPointFromCoords(new kakao.maps.LatLng(lat, lng));
@@ -86,7 +103,6 @@ function px(lat: number, lng: number): { x: number; y: number } | null {
   }
 }
 
-// 사각형 충돌 회피: 겹치면 최소겹침 축으로 밀어냄
 function declutter(nodes: any[], w: number, h: number, pad: number) {
   for (let pass = 0; pass < 60; pass++) {
     let moved = false;
@@ -116,6 +132,40 @@ function declutter(nodes: any[], w: number, h: number, pad: number) {
   }
 }
 
+function membersInView(): any[] {
+  const b = map.getBounds();
+  const sw = b.getSouthWest();
+  const ne = b.getNorthEast();
+  const latM = (ne.getLat() - sw.getLat()) * 0.08;
+  const lngM = (ne.getLng() - sw.getLng()) * 0.08;
+  const out: any[] = [];
+  for (const m of props.members) {
+    if (
+      m.lat < sw.getLat() - latM ||
+      m.lat > ne.getLat() + latM ||
+      m.lng < sw.getLng() - lngM ||
+      m.lng > ne.getLng() + lngM
+    )
+      continue;
+    const p = px(m.lat, m.lng);
+    if (!p) continue;
+    out.push({ m, x: p.x, y: p.y, ox: 0, oy: 0 });
+  }
+  return out;
+}
+
+function add(content: HTMLElement, lat: number, lng: number, z: number) {
+  const o = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(lat, lng),
+    content,
+    yAnchor: 0.5,
+    xAnchor: 0.5,
+    zIndex: z,
+  });
+  o.setMap(map);
+  overlays.push(o);
+}
+
 function renderBubbles() {
   const nodes: any[] = [];
   for (const s of props.regions) {
@@ -130,67 +180,38 @@ function renderBubbles() {
     const el = document.createElement("div");
     el.innerHTML = bubbleHtml(n.s, n.s.region === props.selected, Math.round(n.ox), Math.round(n.oy));
     el.addEventListener("click", () => emit("select", n.s.region));
-    const overlay = new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(n.c.lat, n.c.lng),
-      content: el,
-      yAnchor: 0.5,
-      xAnchor: 0.5,
-      zIndex: n.s.region === props.selected ? 10 : 1,
-    });
-    overlay.setMap(map);
-    overlays.push(overlay);
-    // 오프셋이 크면 실제 위치 점 표시
+    add(el, n.c.lat, n.c.lng, n.s.region === props.selected ? 10 : 1);
     if (Math.hypot(n.ox, n.oy) > 22) {
       const dot = document.createElement("div");
       dot.style.cssText =
         "width:7px;height:7px;border-radius:50%;background:#3182F6;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 2px rgba(0,0,0,.4);";
-      const d = new kakao.maps.CustomOverlay({
-        position: new kakao.maps.LatLng(n.c.lat, n.c.lng),
-        content: dot,
-        yAnchor: 0.5,
-        xAnchor: 0.5,
-        zIndex: 0,
-      });
-      d.setMap(map);
-      overlays.push(d);
+      add(dot, n.c.lat, n.c.lng, 0);
     }
   }
 }
 
-function renderMarkers() {
-  const b = map.getBounds();
-  const sw = b.getSouthWest();
-  const ne = b.getNorthEast();
-  const latMargin = (ne.getLat() - sw.getLat()) * 0.1;
-  const lngMargin = (ne.getLng() - sw.getLng()) * 0.1;
-  const nodes: any[] = [];
-  for (const m of props.members) {
-    if (
-      m.lat < sw.getLat() - latMargin ||
-      m.lat > ne.getLat() + latMargin ||
-      m.lng < sw.getLng() - lngMargin ||
-      m.lng > ne.getLng() + lngMargin
-    )
-      continue;
-    const p = px(m.lat, m.lng);
-    if (!p) continue;
-    nodes.push({ m, x: p.x, y: p.y, ox: 0, oy: 0 });
-  }
-  declutter(nodes, 38, 38, 3);
+function renderMarkers(nodes: any[]) {
+  declutter(nodes, 40, 40, 3);
+  let focused: any = null;
   for (const n of nodes) {
+    const isF = n.m.id === focusedId.value;
+    if (isF) focused = n;
     const el = document.createElement("div");
     el.style.cssText = `transform:translate(${Math.round(n.ox)}px, ${Math.round(n.oy)}px);`;
-    el.innerHTML = faceHtml(n.m);
-    el.addEventListener("click", () => emit("member", n.m.id));
-    const overlay = new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(n.m.lat, n.m.lng),
-      content: el,
-      yAnchor: 0.5,
-      xAnchor: 0.5,
-      zIndex: 1,
+    el.innerHTML = faceHtml(n.m, isF);
+    el.addEventListener("click", () => {
+      focusedId.value = n.m.id;
+      emit("select", n.m.region);
+      render();
     });
-    overlay.setMap(map);
-    overlays.push(overlay);
+    add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
+  }
+  // 클릭한 의원 선거구 라벨 오버레이(맨 위)
+  if (focused) {
+    const lab = document.createElement("div");
+    lab.style.cssText = `transform:translate(${Math.round(focused.ox)}px, ${Math.round(focused.oy)}px);`;
+    lab.innerHTML = labelHtml(focused.m);
+    add(lab, focused.m.lat, focused.m.lng, 30);
   }
 }
 
@@ -198,7 +219,8 @@ function render() {
   if (!kakao || !map) return;
   clearOverlays();
   const level = map.getLevel();
-  if (level <= DETAIL_LEVEL && props.members.length) renderMarkers();
+  const pts = level <= FACE_LEVEL ? membersInView() : [];
+  if (pts.length && pts.length <= MAX_FACES) renderMarkers(pts);
   else renderBubbles();
 }
 
@@ -232,7 +254,7 @@ onBeforeUnmount(clearOverlays);
       v-if="status === 'ready'"
       class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
     >
-      확대하면 의원 얼굴로 표시
+      확대하면 의원 얼굴 · 클릭하면 선거구 표시
     </div>
     <div
       v-if="status === 'loading'"
