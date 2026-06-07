@@ -30,12 +30,12 @@ import { NAV_ITEMS } from "~/lib/nav";
         :class="
           $route.path === item.to ||
           (item.to !== '/' && $route.path.startsWith(item.to))
-            ? 'bg-toss-blue-light text-toss-blue-dark'
-            : 'text-toss-gray-600 hover:bg-toss-gray-100'
+            ? 'bg-[#D6E7FF] text-toss-blue font-bold'
+            : 'text-toss-gray-600 font-semibold hover:bg-toss-gray-100'
         "
       >
         <component :is="item.icon" class="size-[18px] shrink-0" />
-        <span class="text-[14px] font-semibold">{{ item.label }}</span>
+        <span class="text-[14px]">{{ item.label }}</span>
       </NuxtLink>
     </nav>
 

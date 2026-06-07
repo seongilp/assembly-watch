@@ -85,3 +85,20 @@ export interface Paged<T> {
   page: number;
   size: number;
 }
+
+/** 의원의 최근 본회의 표결 1건 */
+export interface MemberVote {
+  billId: string;
+  billName: string;
+  date: string;
+  result: string; // 찬성/반대/기권/불참
+  procResult: string;
+}
+
+/** 의원 상세 통합 응답 */
+export interface MemberDetail {
+  member: Member | null;
+  bills: Bill[];
+  votes: MemberVote[];
+  votesScanned: number;
+}

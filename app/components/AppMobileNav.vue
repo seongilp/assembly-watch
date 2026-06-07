@@ -39,7 +39,7 @@ watch(() => route.path, () => (open.value = false));
               :class="
                 route.path === item.to ||
                 (item.to !== '/' && route.path.startsWith(item.to))
-                  ? 'bg-toss-blue-light text-toss-blue-dark'
+                  ? 'bg-[#D6E7FF] text-toss-blue font-bold'
                   : 'text-toss-gray-700 hover:bg-toss-gray-100'
               "
             >

@@ -8,23 +8,41 @@ import {
   FileText,
   ExternalLink,
   Building2,
+  Vote,
 } from "lucide-vue-next";
-import type { Member, Bill } from "#shared/types";
+import type { MemberDetail } from "#shared/types";
 import { partyColor } from "~/lib/party";
-import { formatDate } from "~/lib/format";
+import { formatDate, voteStyle } from "~/lib/format";
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
 
-const { data: members } = useFetch<{ rows: Member[] }>("/api/members");
-const member = computed(() =>
-  members.value?.rows.find((m) => m.id === id.value),
+// 단일 엔드포인트로 member + bills + votes 통합 조회 (하이드레이션 일관성)
+// 정적 URL + 명시적 key 로 SSR↔CSR payload 매칭 보장
+const { data, pending } = await useFetch<MemberDetail>(
+  `/api/members/${id.value}`,
+  { key: `member-detail-${id.value}` },
 );
 
-const { data: bills, pending: billsPending } = useFetch<{ rows: Bill[] }>(
-  "/api/member-bills",
-  { query: { name: computed(() => member.value?.name ?? "") }, immediate: true },
-);
+const member = computed(() => data.value?.member ?? undefined);
+const bills = computed(() => ({ rows: data.value?.bills ?? [] }));
+const votes = computed(() => ({
+  rows: data.value?.votes ?? [],
+  scanned: data.value?.votesScanned ?? 0,
+}));
+const billsPending = pending;
+const votesPending = pending;
+
+const voteTally = computed(() => {
+  const t = { 찬성: 0, 반대: 0, 기권: 0, 불참: 0 } as Record<string, number>;
+  for (const v of votes.value?.rows ?? []) {
+    if (v.result.includes("찬성")) t.찬성++;
+    else if (v.result.includes("반대")) t.반대++;
+    else if (v.result.includes("기권")) t.기권++;
+    else t.불참++;
+  }
+  return t;
+});
 
 useHead({ title: () => `${member.value?.name ?? "의원"} · 의정감시` });
 
@@ -61,7 +79,7 @@ const contacts = computed(() => {
       <ArrowLeft class="size-4" /> 국회의원 목록
     </NuxtLink>
 
-    <div v-if="!member && members" class="rounded-2xl bg-white card-shadow p-10 text-center">
+    <div v-if="!member && !pending" class="rounded-2xl bg-white card-shadow p-10 text-center">
       <p class="text-toss-gray-500">의원 정보를 찾을 수 없습니다.</p>
     </div>
 
@@ -175,6 +193,61 @@ const contacts = computed(() => {
           </DataState>
         </section>
       </div>
+
+      <!-- 최근 본회의 표결 이력 -->
+      <section class="mt-4 rounded-2xl bg-white card-shadow p-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
+            <Vote class="size-4 text-toss-blue" /> 최근 본회의 표결 이력
+          </h2>
+          <div v-if="votes?.rows?.length" class="flex items-center gap-1.5">
+            <span
+              v-for="(cnt, label) in voteTally"
+              :key="label"
+              v-show="cnt > 0"
+              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-bold"
+              :style="{ color: voteStyle(label).fg, backgroundColor: voteStyle(label).bg }"
+            >
+              {{ label }} {{ cnt }}
+            </span>
+          </div>
+        </div>
+
+        <DataState
+          :pending="votesPending"
+          :empty="!votes?.rows?.length"
+          empty-text="최근 표결 안건에서 이 의원의 기록을 찾지 못했습니다."
+          :skeleton-rows="4"
+        >
+          <ul class="divide-y divide-toss-gray-100">
+            <li v-for="v in votes?.rows" :key="v.billId">
+              <NuxtLink
+                :to="`/votes/${v.billId}`"
+                class="group flex items-center justify-between gap-3 py-3"
+              >
+                <div class="min-w-0">
+                  <p class="text-[14px] font-semibold text-toss-gray-800 group-hover:text-toss-blue line-clamp-1">
+                    {{ v.billName }}
+                  </p>
+                  <p class="mt-1 text-[12px] text-toss-gray-400">
+                    {{ formatDate(v.date) }}
+                    <template v-if="v.procResult"> · {{ v.procResult }}</template>
+                  </p>
+                </div>
+                <span
+                  class="rounded-lg px-2.5 py-1 text-[12px] font-bold shrink-0"
+                  :style="{ color: voteStyle(v.result).fg, backgroundColor: voteStyle(v.result).bg }"
+                >
+                  {{ v.result }}
+                </span>
+              </NuxtLink>
+            </li>
+          </ul>
+          <p class="mt-3 text-[11px] text-toss-gray-400">
+            ※ 최근 본회의 표결 {{ votes?.scanned ?? 0 }}건 기준 (표결 API는 안건별 조회만 지원).
+          </p>
+        </DataState>
+      </section>
     </template>
 
     <div v-else class="space-y-4">
