@@ -134,6 +134,9 @@ export default defineNuxtConfig({
   //     마지막에 KV 캐시를 자동 퍼지(scripts/purge-kv.mjs)해서 방지.
   $production: {
     routeRules: {
+      // HTML 은 브라우저가 매번 재검증 → 재배포 시 옛 HTML(죽은 에셋 참조) 캐시 방지.
+      // (/_nuxt/* 해시 에셋은 더 구체적 규칙으로 immutable 유지)
+      "/**": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // 빌드타임 프리렌더 → CF 정적 에셋으로 엣지 직배(최속). 기본 뷰 기준.
       "/members": { prerender: true },
       "/committees": { prerender: true },

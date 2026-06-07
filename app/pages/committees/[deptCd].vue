@@ -23,25 +23,30 @@ const toggle = (i: number) => {
 import type { MinuteSummary } from "#shared/types";
 const openSummary = ref<Set<string>>(new Set());
 const summaries = ref<Record<string, MinuteSummary | "loading" | "error">>({});
-async function toggleSummary(id: string) {
+async function loadSummary(id: string) {
+  if (!id || summaries.value[id]) return;
+  summaries.value = { ...summaries.value, [id]: "loading" };
+  try {
+    const d = await $fetch<MinuteSummary>(`/api/minute/${id}`);
+    summaries.value = { ...summaries.value, [id]: d };
+  } catch {
+    summaries.value = { ...summaries.value, [id]: "error" };
+  }
+}
+
+// 회의록 탭 열면 요약을 백그라운드로 미리 받아둠(클릭 시 즉시 표시)
+watch(tab, (t) => {
+  if (t !== "minutes") return;
+  const ids = (data.value?.minutes ?? []).map((m) => m.id).filter(Boolean);
+  ids.slice(0, 12).forEach((id) => loadSummary(id));
+});
+
+function toggleSummary(id: string) {
   if (!id) return;
   const s = new Set(openSummary.value);
-  if (s.has(id)) {
-    s.delete(id);
-    openSummary.value = s;
-    return;
-  }
-  s.add(id);
+  s.has(id) ? s.delete(id) : s.add(id);
   openSummary.value = s;
-  if (!summaries.value[id]) {
-    summaries.value = { ...summaries.value, [id]: "loading" };
-    try {
-      const d = await $fetch<MinuteSummary>(`/api/minute/${id}`);
-      summaries.value = { ...summaries.value, [id]: d };
-    } catch {
-      summaries.value = { ...summaries.value, [id]: "error" };
-    }
-  }
+  if (s.has(id)) loadSummary(id);
 }
 
 useHead({ title: () => `${data.value?.committee?.name ?? "위원회"} · 의정감시` });

@@ -41,10 +41,43 @@ async function main() {
     const name = s(r.COMMITTEE_NAME);
     if (!deptCd || !name || seen.has(deptCd)) continue;
     seen.add(deptCd);
-    list.push({ deptCd, name, div: s(r.CMT_DIV_NM), limit: r.LIMIT_CNT ?? null });
+    list.push({ deptCd, name, div: s(r.CMT_DIV_NM), limit: r.LIMIT_CNT ?? null, minutes: [] });
   }
+
+  // 상임위별 최근 회의록 3건 (목록 페이지 인라인 표시용)
+  const year = new Date().getFullYear();
+  const standing = list.filter((c) => c.div === "상임위원회");
+  await Promise.all(
+    standing.map(async (c) => {
+      try {
+        const r = await fetch(
+          `https://open.assembly.go.kr/portal/openapi/ncwgseseafwbuheph?KEY=${KEY}&Type=json&pSize=60&DAE_NUM=22&CONF_DATE=${year}&COMM_NAME=${encodeURIComponent(c.name)}`,
+          { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } },
+        );
+        const j = JSON.parse(await r.text());
+        const mrows = j?.ncwgseseafwbuheph?.[1]?.row ?? [];
+        const seenC = new Set();
+        c.minutes = mrows
+          .map((m) => ({
+            id: (s(m.CONF_LINK_URL).match(/id=(\d+)/) || [])[1] ?? "",
+            title: s(m.TITLE),
+            date: s(m.CONF_DATE),
+            pdf: s(m.PDF_LINK_URL),
+            summary: s(m.CONF_LINK_URL),
+            _k: s(m.CONF_ID) || s(m.TITLE),
+          }))
+          .filter((m) => (seenC.has(m._k) ? false : (seenC.add(m._k), true)))
+          .sort((a, b) => b.date.localeCompare(a.date))
+          .slice(0, 3)
+          .map(({ _k, ...m }) => m);
+      } catch {
+        c.minutes = [];
+      }
+    }),
+  );
+
   save(list);
-  console.log(`[gen-committees] ${list.length}개 위원회 베이크 (상임 ${list.filter((c) => c.div === "상임위원회").length})`);
+  console.log(`[gen-committees] ${list.length}개 위원회 (상임 ${standing.length}, 회의록 베이크 완료)`);
 }
 
 function save(list) {
