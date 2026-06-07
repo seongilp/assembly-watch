@@ -126,8 +126,8 @@ const toggle = (p: string) => {
               v-for="(m, i) in grp.members"
               :key="m.name + i"
               :to="m.id ? `/members/${m.id}` : undefined"
-              class="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-[12px] font-semibold transition-opacity hover:opacity-80"
-              :style="{ color: voteStyle(m.result).fg, backgroundColor: voteStyle(m.result).bg }"
+              class="inline-flex items-center gap-1.5 rounded-full bg-toss-gray-100 py-0.5 pl-0.5 pr-2.5 text-[12px] font-semibold text-toss-gray-700"
+              :class="m.id ? 'hover:bg-toss-gray-200 transition-colors' : ''"
             >
               <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="20" />
               {{ m.name }}
