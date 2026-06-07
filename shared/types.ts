@@ -103,10 +103,20 @@ export interface CommitteeMeeting {
 }
 
 export interface CommitteeMinute {
+  id: string; // 회의록 id (CONF_LINK_URL 의 id)
   title: string; // TITLE
   date: string; // CONF_DATE
   pdf: string; // PDF_LINK_URL (전체 PDF)
   summary: string; // CONF_LINK_URL (type=summary, 요약 뷰어)
+}
+
+/** 회의록 요약 (요약 뷰어에서 추출) */
+export interface MinuteSummary {
+  title: string;
+  agenda: string[]; // 상정된 안건
+  speakers: string[]; // 발언/참석 위원
+  hwp: string; // 한글 다운로드
+  pdf: string; // PDF 다운로드
 }
 
 export interface CommitteeDetail {

@@ -56,6 +56,7 @@ export default defineCachedEventHandler(
     const seenConf = new Set<string>();
     const minutes: CommitteeMinute[] = [...min.rows, ...minPrev.rows]
       .map((r) => ({
+        id: s(r.CONF_LINK_URL).match(/id=(\d+)/)?.[1] ?? "",
         title: s(r.TITLE),
         date: s(r.CONF_DATE),
         pdf: s(r.PDF_LINK_URL),
