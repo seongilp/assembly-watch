@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Search, Users } from "lucide-vue-next";
+import { Search, List, Map as MapIcon } from "lucide-vue-next";
 import type { MemberListItem } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
 
@@ -10,6 +10,7 @@ const { data, pending, error } = useFetch<{
 
 const search = ref("");
 const party = ref<string>("전체");
+const view = ref<"list" | "region">("list");
 
 const parties = computed(() => {
   const counts = new Map<string, number>();
@@ -75,20 +76,35 @@ useHead({ title: "국회의원 · 의정감시" });
         />
       </div>
 
-      <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        <button
-          v-for="p in ['전체', ...parties]"
-          :key="p"
-          class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
-          :class="
-            party === p
-              ? 'bg-foreground text-background'
-              : 'bg-card text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
-          "
-          @click="party = p"
-        >
-          {{ p }}
-        </button>
+      <div class="flex items-center gap-2">
+        <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 flex-1">
+          <button
+            v-for="p in ['전체', ...parties]"
+            :key="p"
+            class="shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+            :class="
+              party === p
+                ? 'bg-foreground text-background'
+                : 'bg-card text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
+            "
+            @click="party = p"
+          >
+            {{ p }}
+          </button>
+        </div>
+        <div class="shrink-0 inline-flex rounded-xl bg-toss-gray-100 p-0.5">
+          <button
+            v-for="v in (['list', 'region'] as const)"
+            :key="v"
+            class="grid place-items-center size-8 rounded-lg transition-all"
+            :class="view === v ? 'bg-card text-toss-blue card-shadow' : 'text-toss-gray-400'"
+            :aria-label="v === 'list' ? '목록 보기' : '지역 보기'"
+            @click="view = v"
+          >
+            <List v-if="v === 'list'" class="size-[18px]" />
+            <MapIcon v-else class="size-[18px]" />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -102,7 +118,12 @@ useHead({ title: "국회의원 · 의정감시" });
       <p class="mb-3 text-[13px] text-toss-gray-500">
         총 <b class="text-toss-gray-900">{{ filtered.length }}</b>명
       </p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+
+      <!-- 지역 보기 -->
+      <MemberByRegion v-if="view === 'region'" :members="filtered" />
+
+      <!-- 목록 보기 -->
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <NuxtLink
           v-for="m in shown"
           :key="m.id"
@@ -124,8 +145,8 @@ useHead({ title: "국회의원 · 의정감시" });
           <PartyBadge :party="m.party" size="sm" :dot="false" />
         </NuxtLink>
       </div>
-      <div ref="sentinel" class="h-1" />
-      <div v-if="shown.length < filtered.length" class="mt-4 text-center">
+      <div v-if="view === 'list'" ref="sentinel" class="h-1" />
+      <div v-if="view === 'list' && shown.length < filtered.length" class="mt-4 text-center">
         <button
           class="rounded-xl bg-card px-5 py-2.5 text-[14px] font-bold text-toss-gray-700 card-shadow hover:bg-toss-gray-50 transition-colors"
           @click="visible += STEP"
