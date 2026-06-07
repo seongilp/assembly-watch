@@ -171,6 +171,15 @@ async function main() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);
 
+  // 가장 적게 발의한 의원 (대표발의 0건 포함 — 전체 의원 기준 오름차순)
+  const leastProposed = members
+    .map((m) => ({
+      id: m.id, name: m.name, party: m.party, origin: m.origin, photo: m.photo,
+      count: proposeCount.get(m.id) ?? 0,
+    }))
+    .sort((a, b) => a.count - b.count || a.name.localeCompare(b.name))
+    .slice(0, 15);
+
   const voteList = [...tally.entries()].map(([name, t]) => ({ name, ...t }));
   const top = (sel) =>
     voteList
@@ -194,6 +203,7 @@ async function main() {
     voteBills: votedBills.length,
     terms,
     proposed,
+    leastProposed,
     absent: top((t) => t.absent),
     yes: top((t) => t.yes),
     no: top((t) => t.no),

@@ -208,6 +208,7 @@ export interface Insights {
   voteBills: number;
   terms: InsightMember[];
   proposed: InsightMember[];
+  leastProposed: InsightMember[];
   absent: InsightMember[];
   yes: InsightMember[];
   no: InsightMember[];

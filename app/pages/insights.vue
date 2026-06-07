@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileText, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award } from "lucide-vue-next";
+import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award } from "lucide-vue-next";
 import type { Insights } from "#shared/types";
 
 const { data } = await useFetch<Insights>("/api/insights");
@@ -29,6 +29,13 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.proposed ?? []"
         unit="건"
         accent="#3182F6"
+      />
+      <RankingCard
+        title="가장 적게 발의한 의원"
+        :icon="FileX"
+        :items="data?.leastProposed ?? []"
+        unit="건"
+        accent="#8B95A1"
       />
       <RankingCard
         title="가장 많이 불참한 의원"
