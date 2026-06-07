@@ -40,11 +40,21 @@ async function main() {
   const pendingRows = await call("nwbqublzajtcqpdae", {});
   const processedRows = await call("nzpltgfqabtcpsmai", { AGE: String(AGE) });
 
+  // 계류 의안 심사 단계 (날짜 필드로 진행도 산출)
+  const stageOf = (r) => {
+    if (s(r.LAW_PROC_DT)) return "본회의 대기";
+    if (s(r.LAW_PRESENT_DT)) return "체계자구 심사";
+    if (s(r.CMT_PROC_DT)) return "위원회 의결";
+    if (s(r.CMT_PRESENT_DT)) return "위원회 심사";
+    if (s(r.COMMITTEE_DT)) return "위원회 회부";
+    return "접수";
+  };
   const pending = pendingRows.map((r) => ({
     id: s(r.BILL_ID), no: s(r.BILL_NO), name: s(r.BILL_NAME),
     proposer: s(r.PROPOSER), proposerKind: s(r.PROPOSER_KIND),
     proposeDt: s(r.PROPOSE_DT), committee: s(r.CURR_COMMITTEE),
     procResult: "", procDt: "", link: s(r.LINK_URL), status: "pending",
+    stage: stageOf(r),
   }));
   const processed = processedRows.map((r) => ({
     id: s(r.BILL_ID), no: s(r.BILL_NO), name: s(r.BILL_NAME),

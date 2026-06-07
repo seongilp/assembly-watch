@@ -134,7 +134,7 @@ function faceHtml(m: MemberPt, focused: boolean) {
 // 클릭한 의원의 선거구 라벨(지도 오버레이)
 function labelHtml(m: MemberPt) {
   return `
-    <div style="transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
+    <div style="pointer-events:none;transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
                 background:#191F28;color:#fff;border-radius:9px;padding:5px 9px;
                 box-shadow:0 3px 10px rgba(0,0,0,.35);font-family:Pretendard,sans-serif;">
       <div style="font-size:12px;font-weight:800;">${m.name} <span style="font-weight:600;color:${m.color === "#152484" ? "#9DB2FF" : m.color};">${m.party}</span></div>

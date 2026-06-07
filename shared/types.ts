@@ -47,6 +47,18 @@ export interface Bill {
   procDt: string; // PROC_DT
   link: string; // LINK_URL / DETAIL_LINK
   status: "pending" | "processed";
+  stage?: string; // 계류 의안 심사 단계 (접수/위원회 회부/심사/의결/본회의 대기)
+}
+
+/** 의안 공동발의자(정당별 그룹) */
+export interface BillProposer {
+  name: string;
+  party: string;
+}
+export interface BillProposers {
+  rep: string; // 대표발의
+  total: number;
+  byParty: { party: string; count: number; names: string[] }[];
 }
 
 export interface VoteSummary {
@@ -109,6 +121,9 @@ export interface CommitteeMinute {
   date: string; // CONF_DATE
   pdf: string; // PDF_LINK_URL (전체 PDF)
   summary: string; // CONF_LINK_URL (type=summary, 요약 뷰어)
+  vod?: string; // VOD_LINK_URL (영상)
+  agenda?: string[]; // 빌드 베이크된 상정 안건(목록 페이지 즉시 표시)
+  speakers?: string[]; // 빌드 베이크된 발언·참석 위원
 }
 
 /** 회의록 요약 (요약 뷰어에서 추출) */

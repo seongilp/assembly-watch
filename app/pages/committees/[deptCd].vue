@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Landmark, FileText, Download, ExternalLink, ChevronDown } from "lucide-vue-next";
+import { ArrowLeft, Landmark, FileText, Download, ExternalLink, ChevronDown, Video } from "lucide-vue-next";
 import type { CommitteeDetail } from "#shared/types";
 import { formatDate } from "~/lib/format";
 
@@ -152,6 +152,9 @@ useHead({ title: () => `${data.value?.committee?.name ?? "위원회"} · 의정�
                     <FileText class="size-3.5" /> 요약
                     <ChevronDown class="size-3.5 transition-transform" :class="openSummary.has(m.id) ? 'rotate-180' : ''" />
                   </button>
+                  <a v-if="m.vod" :href="m.vod" target="_blank" class="inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2.5 py-1.5 text-[12px] font-bold text-toss-gray-600 hover:bg-toss-gray-200">
+                    <Video class="size-3.5" /> 영상
+                  </a>
                   <a v-if="m.pdf" :href="m.pdf" target="_blank" class="inline-flex items-center gap-1 rounded-lg bg-toss-blue-light px-2.5 py-1.5 text-[12px] font-bold text-toss-blue-dark hover:opacity-80">
                     <Download class="size-3.5" /> PDF
                   </a>
@@ -173,9 +176,7 @@ useHead({ title: () => `${data.value?.committee?.name ?? "위원회"} · 의정�
                   </div>
                   <div v-if="(summaries[m.id] as any).speakers?.length">
                     <p class="text-[12px] font-bold text-toss-gray-500 mb-1.5">발언·참석 위원 {{ (summaries[m.id] as any).speakers.length }}</p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span v-for="(sp, j) in (summaries[m.id] as any).speakers" :key="j" class="rounded-lg bg-toss-gray-100 px-2 py-1 text-[12px] text-toss-gray-600">{{ sp }}</span>
-                    </div>
+                    <MinuteSpeakers :speakers="(summaries[m.id] as any).speakers" />
                   </div>
                   <a :href="m.summary" target="_blank" class="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-toss-blue hover:text-toss-blue-dark">
                     회의록 원문 보기 <ExternalLink class="size-3.5" />

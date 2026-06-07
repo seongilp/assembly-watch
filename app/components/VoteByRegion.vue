@@ -7,6 +7,31 @@ import { voteStyle, resultFill } from "~/lib/format";
 const props = defineProps<{ records: VoteRecord[] }>();
 const partyColor = usePartyColor();
 
+// 선거구 좌표(빌드 베이크) — 지도 확대 시 의원 얼굴(표결색) 마커
+const { data: coords } = useFetch<Record<string, [number, number]>>(
+  "/api/districts",
+  { key: "districts", lazy: true },
+);
+const votePts = computed(() =>
+  props.records
+    .map((r) => {
+      const c = r.id ? coords.value?.[r.id] : null;
+      return c
+        ? {
+            id: r.id as string,
+            name: r.name,
+            color: resultFill(r.result),
+            result: r.result,
+            origin: r.origin,
+            region: regionOf(r.origin),
+            lat: c[0],
+            lng: c[1],
+          }
+        : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x),
+);
+
 const RESULT_ORDER = ["찬성", "반대", "기권", "불참"] as const;
 
 interface RegionStat {
@@ -109,6 +134,7 @@ const mapRegions = computed(() =>
     <ClientOnly v-if="mode === 'map'">
       <KakaoVoteMap
         :regions="mapRegions"
+        :members="votePts"
         :selected="selected"
         @select="(r) => (selected = selected === r ? null : r)"
         @error="mode = 'tile'"

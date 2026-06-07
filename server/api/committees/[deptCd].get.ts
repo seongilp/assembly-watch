@@ -61,6 +61,7 @@ export default defineCachedEventHandler(
         date: s(r.CONF_DATE),
         pdf: s(r.PDF_LINK_URL),
         summary: s(r.CONF_LINK_URL), // type=summary 요약 뷰어
+        vod: s(r.VOD_LINK_URL),
         _key: s(r.CONF_ID) || s(r.TITLE) + s(r.CONF_DATE),
       }))
       .filter((m) => {

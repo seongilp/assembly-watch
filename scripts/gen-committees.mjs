@@ -21,6 +21,37 @@ function key() {
 
 const s = (v) => (v == null ? "" : String(v).trim());
 
+// 회의록 요약 뷰어 HTML → {agenda, speakers} (런타임 /api/minute 와 동일 로직)
+async function scrapeSummary(id) {
+  const empty = { agenda: [], speakers: [] };
+  if (!/^\d+$/.test(String(id))) return empty;
+  try {
+    const r = await fetch(
+      `https://record.assembly.go.kr/assembly/viewer/minutes/xml.do?id=${id}&type=summary`,
+      { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } },
+    );
+    const html = await r.text();
+    const dec = (t) =>
+      t.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/\s+/g, " ").trim();
+    const agenda = [];
+    const angun = html.match(/<ul class="list_angun">([\s\S]*?)<\/ul>/);
+    if (angun) for (const m of angun[1].matchAll(/<a[^>]*>([\s\S]*?)<\/a>/g)) {
+      const t = dec(m[1].replace(/<[^>]+>/g, ""));
+      if (t) agenda.push(t);
+    }
+    const speakers = [];
+    const att = html.match(/<datalist id="attender">([\s\S]*?)<\/datalist>/);
+    if (att) for (const m of att[1].matchAll(/<option value="([^"]+)"/g)) {
+      const t = dec(m[1]);
+      if (t && !speakers.includes(t)) speakers.push(t);
+    }
+    return { agenda, speakers };
+  } catch {
+    return empty;
+  }
+}
+
 async function main() {
   const KEY = key();
   if (!KEY) {
@@ -67,12 +98,22 @@ async function main() {
             date: s(m.CONF_DATE),
             pdf: s(m.PDF_LINK_URL),
             summary: s(m.CONF_LINK_URL),
+            vod: s(m.VOD_LINK_URL),
             _k: s(m.CONF_ID) || s(m.TITLE),
           }))
           .filter((m) => (seenC.has(m._k) ? false : (seenC.add(m._k), true)))
           .sort((a, b) => b.date.localeCompare(a.date))
           .slice(0, 3)
           .map(({ _k, ...m }) => m);
+        // 요약(상정안건+발언위원) 빌드 베이크 → 목록에서 즉시 표시(런타임 스크래핑 제거)
+        await Promise.all(
+          c.minutes.map(async (m) => {
+            if (!m.id) return;
+            const sum = await scrapeSummary(m.id);
+            m.agenda = sum.agenda;
+            m.speakers = sum.speakers;
+          }),
+        );
       } catch {
         c.minutes = [];
       }

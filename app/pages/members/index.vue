@@ -32,25 +32,6 @@ const filtered = computed(() => {
   });
 });
 
-// 점진 렌더: SSR/초기엔 일부만 그려 HTML 경량화, 스크롤 시 더 로드
-const STEP = 60;
-const visible = ref(STEP);
-const shown = computed(() => filtered.value.slice(0, visible.value));
-watch([search, party], () => (visible.value = STEP));
-const sentinel = ref<HTMLElement | null>(null);
-onMounted(() => {
-  const io = new IntersectionObserver(
-    (entries) => {
-      if (entries[0]?.isIntersecting && visible.value < filtered.value.length) {
-        visible.value += STEP;
-      }
-    },
-    { rootMargin: "600px" },
-  );
-  if (sentinel.value) io.observe(sentinel.value);
-  onBeforeUnmount(() => io.disconnect());
-});
-
 useHead({ title: "국회의원 · 의정감시" });
 </script>
 
@@ -122,10 +103,10 @@ useHead({ title: "국회의원 · 의정감시" });
       <!-- 지역 보기 -->
       <MemberByRegion v-if="view === 'region'" :members="filtered" />
 
-      <!-- 목록 보기 -->
+      <!-- 목록 보기 (전체 렌더) -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         <NuxtLink
-          v-for="m in shown"
+          v-for="m in filtered"
           :key="m.id"
           :to="`/members/${m.id}`"
           class="group flex items-center gap-3.5 rounded-2xl bg-card p-4 card-shadow transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
@@ -144,15 +125,6 @@ useHead({ title: "국회의원 · 의정감시" });
           </div>
           <PartyBadge :party="m.party" size="sm" :dot="false" />
         </NuxtLink>
-      </div>
-      <div v-if="view === 'list'" ref="sentinel" class="h-1" />
-      <div v-if="view === 'list' && shown.length < filtered.length" class="mt-4 text-center">
-        <button
-          class="rounded-xl bg-card px-5 py-2.5 text-[14px] font-bold text-toss-gray-700 card-shadow hover:bg-toss-gray-50 transition-colors"
-          @click="visible += STEP"
-        >
-          더 보기 <span class="text-toss-gray-400">({{ filtered.length - shown.length }}명)</span>
-        </button>
       </div>
     </DataState>
   </div>

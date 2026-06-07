@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
- * 선거구 → 시군구 행정경계 폴리곤 베이크: server/assets/district-shapes.json
- *   { codes: { [sggCode]: { name, rings: [[[lng,lat],...],...] } },
- *     members: { [MONA_CD]: [sggCode, ...] } }
- * 의원 클릭 시 해당 지역구(시군구) 경계를 카카오 Polygon 으로 오버레이하기 위함.
- * 소스: southkorea-maps 시군구 GeoJSON(2018). RDP 단순화로 용량 절감.
- * 분구 선거구(고양시갑 등)는 정밀 경계가 없어 시 전체로 근사(베스트에포트).
+ * 제22대 국회의원 선거구(254) 경계 폴리곤 베이크 → server/assets/district-shapes.json
+ *   { codes: { [SGG_Code]: { name, rings: [[[lng,lat],...],...] } },
+ *     members: { [MONA_CD]: [SGG_Code] } }
+ * 행정동 dissolve 데이터라 분구 도시도 동 단위 정확. 선거구명(약칭) ↔ ORIG_NM 은
+ * 양쪽에서 시·군·구 글자를 제거하면 동일해지는 성질로 매칭(세종은 갑/을 suffix 특수처리).
+ * 추가로 각 선거구 폴리곤 중심을 districts.json 좌표로 덮어써 마커를 정확히 배치.
+ * 소스: OhmyNews/2024_22_elec_map (통계청 행정동 dissolve, WGS84).
  */
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -13,17 +14,14 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(root, "server/assets/district-shapes.json");
+const DIST = join(root, "server/assets/districts.json");
 const MEMBERS = "nwvrqwxyaytdsfvhu";
 const GEO_URL =
-  "https://raw.githubusercontent.com/southkorea/southkorea-maps/master/kostat/2018/json/skorea-municipalities-2018-geo.json";
+  "https://raw.githubusercontent.com/OhmyNews/2024_22_elec_map/master/2024_22_Elec_simplify.json";
 
-const PREFIX = {
-  서울: "11", 부산: "21", 대구: "22", 인천: "23", 광주: "24", 대전: "25",
-  울산: "26", 세종: "29", 경기: "31", 강원: "32", 충북: "33", 충남: "34",
-  전북: "35", 전남: "36", 경북: "37", 경남: "38", 제주: "39",
-};
-
+const SIDOS = ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
 const s = (v) => (v == null ? "" : String(v).trim());
+const norm = (x) => s(x).replace(/[시군구·\s]/g, "");
 
 function envv(name) {
   if (process.env[name]) return process.env[name];
@@ -34,34 +32,19 @@ function envv(name) {
   }
 }
 
-function sidoKey(origin) {
-  const o = s(origin);
-  for (const k of Object.keys(PREFIX)) if (o.startsWith(k)) return k;
+function sidoKey(o) {
+  for (const k of SIDOS) if (s(o).startsWith(k)) return k;
   return "";
 }
-
-function cleanRest(origin) {
-  let o = s(origin).replace(/\s+/g, " ");
-  if (o.includes(" ")) o = o.split(" ").slice(1).join("");
-  else o = o.replace(/^[가-힣]+?(특별자치시|특별자치도|특별시|광역시|도)/, "");
-  return o.replace(/[갑을병정무]\d*$/, "").replace(/\d+$/, "");
+function restOf(o) {
+  o = s(o).replace(/\s+/g, " ");
+  return o.includes(" ") ? o.split(" ").slice(1).join("") : o.replace(/^[가-힣]+?(특별자치시|특별자치도|특별시|광역시|도)/, "");
+}
+function suffixOf(o) {
+  return (s(o).match(/[갑을병정무]$/) || [""])[0];
 }
 
-// 시도 내 GeoJSON 이름들로 greedy longest-prefix 매칭 → 구성 시군구명 목록
-function matchNames(rest, sorted, all) {
-  const out = new Set();
-  let str = rest;
-  while (str.length) {
-    const m = sorted.find((n) => str.startsWith(n));
-    if (!m) break;
-    out.add(m);
-    str = str.slice(m.length);
-  }
-  if (!out.size && rest) for (const n of all) if (n.startsWith(rest)) out.add(n);
-  return [...out];
-}
-
-// 거리 기반 데시메이션(닫힌 링에 안전) — 최소 간격 이상일 때만 점 유지
+// 거리 데시메이션(닫힌 링 안전)
 function simplifyRing(ring, minDist) {
   const r5 = (n) => Math.round(n * 1e5) / 1e5;
   const out = [];
@@ -74,16 +57,34 @@ function simplifyRing(ring, minDist) {
   }
   if (out.length >= 3) {
     const f = out[0], l = out[out.length - 1];
-    if (f[0] !== l[0] || f[1] !== l[1]) out.push([f[0], f[1]]); // 닫기
+    if (f[0] !== l[0] || f[1] !== l[1]) out.push([f[0], f[1]]);
   }
   return out;
 }
-
-// MultiPolygon/Polygon 외곽 링만 추출
 function outerRings(geom) {
   if (geom.type === "Polygon") return [geom.coordinates[0]];
-  if (geom.type === "MultiPolygon") return geom.coordinates.map((poly) => poly[0]);
+  if (geom.type === "MultiPolygon") return geom.coordinates.map((p) => p[0]);
   return [];
+}
+// 가장 큰 링의 폴리곤 중심(shoelace) → [lat, lng]
+function centroid(rings) {
+  let big = rings[0];
+  for (const r of rings) if (r.length > big.length) big = r;
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < big.length - 1; i++) {
+    const [x0, y0] = big[i];
+    const [x1, y1] = big[i + 1];
+    const f = x0 * y1 - x1 * y0;
+    a += f;
+    cx += (x0 + x1) * f;
+    cy += (y0 + y1) * f;
+  }
+  if (Math.abs(a) < 1e-9) {
+    const m = big.reduce((acc, [x, y]) => [acc[0] + x, acc[1] + y], [0, 0]);
+    return [m[1] / big.length, m[0] / big.length];
+  }
+  a *= 0.5;
+  return [cy / (6 * a), cx / (6 * a)]; // [lat, lng]
 }
 
 async function main() {
@@ -94,19 +95,20 @@ async function main() {
     return;
   }
   const geo = await (await fetch(GEO_URL)).json();
-  const byCode = new Map();
-  const namesBySido = {}; // prefix → {names:[], byName: Map(name→feature)}
+  const EPS = 0.0035;
+  const bySido = {}; // sido → { byNorm: Map(normSGG→feat), bySuffix: Map(suffix→[feat]) }
+  const feats = {};
   for (const f of geo.features) {
-    const code = s(f.properties.code);
-    const name = s(f.properties.name);
-    byCode.set(code, f);
-    const pre = code.slice(0, 2);
-    (namesBySido[pre] = namesBySido[pre] || { names: [], byName: new Map() });
-    namesBySido[pre].names.push(name);
-    namesBySido[pre].byName.set(name, f);
+    const p = f.properties;
+    const code = s(p.SGG_Code);
+    const sgg = s(p.SGG);
+    const rings = outerRings(f.geometry).map((r) => simplifyRing(r, EPS)).filter((r) => r.length >= 4);
+    feats[code] = { code, sido: s(p.SIDO), name: sgg, rings, center: centroid(rings) };
+    const b = (bySido[p.SIDO] = bySido[p.SIDO] || { byNorm: new Map(), bySuffix: new Map() });
+    b.byNorm.set(norm(sgg), code);
+    const suf = suffixOf(sgg);
+    (b.bySuffix.get(suf) || b.bySuffix.set(suf, []).get(suf)).push(code);
   }
-  for (const pre of Object.keys(namesBySido))
-    namesBySido[pre].sorted = [...namesBySido[pre].names].sort((a, b) => b.length - a.length);
 
   const res = await fetch(
     `https://open.assembly.go.kr/portal/openapi/${MEMBERS}?KEY=${apiKey}&Type=json&pIndex=1&pSize=350`,
@@ -117,39 +119,40 @@ async function main() {
 
   const codes = {};
   const members = {};
-  const EPS = 0.007; // 데시메이션 최소 간격(deg, ~700m) — 용량/형태 균형
+  const centers = {}; // id → [lat,lng]
+  let matched = 0;
   for (const r of rows) {
     const id = s(r.MONA_CD);
-    const origin = s(r.ORIG_NM);
-    if (!id || !origin || origin.includes("비례")) continue;
-    const sido = sidoKey(origin);
-    const pre = PREFIX[sido];
-    const bucket = namesBySido[pre];
-    if (!bucket) continue;
-    const rest = cleanRest(origin);
-    let names = rest ? matchNames(rest, bucket.sorted, bucket.names) : bucket.names.slice();
-    if (!names.length) continue;
-    const myCodes = [];
-    for (const nm of names) {
-      const f = bucket.byName.get(nm);
-      if (!f) continue;
-      const code = s(f.properties.code);
-      myCodes.push(code);
-      if (!codes[code]) {
-        const rings = outerRings(f.geometry)
-          .map((ring) => simplifyRing(ring, EPS))
-          .filter((ring) => ring.length >= 4);
-        codes[code] = { name: nm, rings };
-      }
+    const o = s(r.ORIG_NM);
+    if (!id || !o || o.includes("비례")) continue;
+    const sido = sidoKey(o);
+    const b = bySido[sido];
+    if (!b) continue;
+    let code = b.byNorm.get(norm(restOf(o)));
+    if (!code) {
+      // 세종 등: suffix 유일 매칭
+      const cand = b.bySuffix.get(suffixOf(o)) || [];
+      if (cand.length === 1) code = cand[0];
     }
-    if (myCodes.length) members[id] = myCodes;
+    if (!code) continue;
+    matched++;
+    members[id] = [code];
+    centers[id] = feats[code].center;
+    if (!codes[code]) codes[code] = { name: feats[code].name, rings: feats[code].rings };
   }
 
   save({ codes, members });
+
+  // 마커 좌표를 선거구 중심으로 덮어쓰기(분구도 정확·분산)
+  let dist = {};
+  try {
+    dist = JSON.parse(readFileSync(DIST, "utf8"));
+  } catch {}
+  for (const [id, c] of Object.entries(centers)) dist[id] = c;
+  writeFileSync(DIST, JSON.stringify(dist));
+
   const sz = (JSON.stringify({ codes, members }).length / 1024).toFixed(0);
-  console.log(
-    `[gen-shapes] 시군구 ${Object.keys(codes).length}개 폴리곤, 의원 ${Object.keys(members).length}명 매핑 (${sz}KB)`,
-  );
+  console.log(`[gen-shapes] 선거구 ${Object.keys(codes).length}개, 의원 ${matched}명 매칭(${sz}KB) + districts 좌표 갱신`);
 }
 
 function save(obj) {

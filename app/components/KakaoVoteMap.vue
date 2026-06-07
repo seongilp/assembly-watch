@@ -9,9 +9,20 @@ interface RegionStat {
   blank: number;
   absent: number;
 }
+interface VotePt {
+  id: string;
+  name: string;
+  color: string; // 표결 결과색
+  result: string;
+  origin: string;
+  region: string;
+  lat: number;
+  lng: number;
+}
 
 const props = defineProps<{
   regions: RegionStat[];
+  members: VotePt[];
   selected: string | null;
 }>();
 const emit = defineEmits<{ select: [region: string]; error: [] }>();
@@ -20,20 +31,23 @@ const mapEl = ref<HTMLElement | null>(null);
 const status = ref<"loading" | "ready" | "error">("loading");
 let kakao: any = null;
 let map: any = null;
-const overlays = new Map<string, any>();
+let overlays: any[] = [];
+const focusedId = ref<string | null>(null);
 
+const FACE_LEVEL = 12;
 const COLORS = { yes: "#3182F6", no: "#F04452", blank: "#FF9500", absent: "#B0B8C1" };
 
-function badgeHtml(s: RegionStat, active: boolean) {
+function clearOverlays() {
+  overlays.forEach((o) => o.setMap(null));
+  overlays = [];
+}
+
+function bubbleHtml(s: RegionStat, active: boolean, ox: number, oy: number) {
   const seg = (n: number, c: string) =>
-    n > 0
-      ? `<span style="width:${((n / s.total) * 100).toFixed(1)}%;background:${c};display:inline-block;height:100%;"></span>`
-      : "";
-  const ring = active
-    ? "border:2px solid #3182F6;"
-    : "border:1px solid rgba(0,0,0,.08);";
+    n > 0 ? `<span style="width:${((n / s.total) * 100).toFixed(1)}%;background:${c};display:inline-block;height:100%;"></span>` : "";
+  const ring = active ? "border:2px solid #3182F6;" : "border:1px solid rgba(0,0,0,.08);";
   return `
-    <div style="cursor:pointer;transform:translate(-50%,-50%);min-width:78px;
+    <div style="cursor:pointer;transform:translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px));min-width:78px;
                 background:#fff;${ring}border-radius:10px;padding:5px 7px;
                 box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:Pretendard,sans-serif;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:3px;">
@@ -46,26 +60,141 @@ function badgeHtml(s: RegionStat, active: boolean) {
     </div>`;
 }
 
-function render() {
-  if (!kakao || !map) return;
-  overlays.forEach((o) => o.setMap(null));
-  overlays.clear();
+function faceHtml(m: VotePt, focused: boolean) {
+  const initial = (m.name || "").slice(0, 1);
+  const size = focused ? 46 : 36;
+  const bw = focused ? 3 : 2;
+  return `
+    <div title="${m.name} · ${m.result}" style="cursor:pointer;transform:translate(-50%,-50%);position:relative;
+                width:${size}px;height:${size}px;border-radius:50%;background:${m.color};border:${bw}px solid ${m.color};
+                box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
+                color:#fff;font:700 ${Math.round(size * 0.4)}px Pretendard,sans-serif;">
+      <span style="position:absolute;">${initial}</span>
+      <img src="/m/${m.id}.webp" alt="${m.name}"
+           style="position:relative;width:100%;height:100%;object-fit:cover;object-position:top;display:block;"
+           onerror="this.remove()" />
+    </div>`;
+}
+
+function labelHtml(m: VotePt) {
+  return `
+    <div style="pointer-events:none;transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
+                background:#191F28;color:#fff;border-radius:9px;padding:5px 9px;
+                box-shadow:0 3px 10px rgba(0,0,0,.35);font-family:Pretendard,sans-serif;">
+      <div style="font-size:12px;font-weight:800;">${m.name} <span style="font-weight:700;color:${m.color};">${m.result}</span></div>
+      <div style="font-size:11px;color:#C9CDD2;margin-top:1px;">${m.origin}</div>
+    </div>`;
+}
+
+function px(lat: number, lng: number): { x: number; y: number } | null {
+  try {
+    const p = map.getProjection().containerPointFromCoords(new kakao.maps.LatLng(lat, lng));
+    return { x: p.x, y: p.y };
+  } catch {
+    return null;
+  }
+}
+
+function declutter(nodes: any[], w: number, h: number, pad: number) {
+  for (let pass = 0; pass < 60; pass++) {
+    let moved = false;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        const dx = b.x + b.ox - (a.x + a.ox);
+        const dy = b.y + b.oy - (a.y + a.oy);
+        const ox = w + pad - Math.abs(dx);
+        const oy = h + pad - Math.abs(dy);
+        if (ox > 0 && oy > 0) {
+          moved = true;
+          if (ox <= oy) { const sft = ((dx < 0 ? -1 : 1) * ox) / 2; a.ox -= sft; b.ox += sft; }
+          else { const sft = ((dy < 0 ? -1 : 1) * oy) / 2; a.oy -= sft; b.oy += sft; }
+        }
+      }
+    }
+    if (!moved) break;
+  }
+}
+
+function add(content: HTMLElement, lat: number, lng: number, z: number) {
+  const o = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(lat, lng),
+    content, yAnchor: 0.5, xAnchor: 0.5, zIndex: z,
+  });
+  o.setMap(map);
+  overlays.push(o);
+}
+
+function membersInView(): any[] {
+  const b = map.getBounds();
+  const sw = b.getSouthWest(), ne = b.getNorthEast();
+  const latM = (ne.getLat() - sw.getLat()) * 0.08;
+  const lngM = (ne.getLng() - sw.getLng()) * 0.08;
+  const out: any[] = [];
+  for (const m of props.members) {
+    if (m.lat < sw.getLat() - latM || m.lat > ne.getLat() + latM || m.lng < sw.getLng() - lngM || m.lng > ne.getLng() + lngM) continue;
+    const p = px(m.lat, m.lng);
+    if (!p) continue;
+    out.push({ m, x: p.x, y: p.y, ox: 0, oy: 0 });
+  }
+  return out;
+}
+
+function renderBubbles() {
+  const nodes: any[] = [];
   for (const s of props.regions) {
     const c = REGION_CENTROID[s.region];
     if (!c) continue;
-    const el = document.createElement("div");
-    el.innerHTML = badgeHtml(s, s.region === props.selected);
-    el.addEventListener("click", () => emit("select", s.region));
-    const overlay = new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(c.lat, c.lng),
-      content: el,
-      yAnchor: 0.5,
-      xAnchor: 0.5,
-      zIndex: s.region === props.selected ? 10 : 1,
-    });
-    overlay.setMap(map);
-    overlays.set(s.region, overlay);
+    const p = px(c.lat, c.lng);
+    if (!p) continue;
+    nodes.push({ s, c, x: p.x, y: p.y, ox: 0, oy: 0 });
   }
+  declutter(nodes, 84, 44, 6);
+  for (const n of nodes) {
+    const el = document.createElement("div");
+    el.innerHTML = bubbleHtml(n.s, n.s.region === props.selected, Math.round(n.ox), Math.round(n.oy));
+    el.addEventListener("click", () => emit("select", n.s.region));
+    add(el, n.c.lat, n.c.lng, n.s.region === props.selected ? 10 : 1);
+    if (Math.hypot(n.ox, n.oy) > 22) {
+      const dot = document.createElement("div");
+      dot.style.cssText = "width:7px;height:7px;border-radius:50%;background:#3182F6;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 2px rgba(0,0,0,.4);";
+      add(dot, n.c.lat, n.c.lng, 0);
+    }
+  }
+}
+
+function renderMarkers(nodes: any[]) {
+  declutter(nodes, 40, 40, 3);
+  let focused: any = null;
+  for (const n of nodes) {
+    const isF = n.m.id === focusedId.value;
+    if (isF) focused = n;
+    const el = document.createElement("div");
+    el.style.cssText = `transform:translate(${Math.round(n.ox)}px, ${Math.round(n.oy)}px);`;
+    el.innerHTML = faceHtml(n.m, isF);
+    el.addEventListener("click", () => {
+      focusedId.value = n.m.id;
+      emit("select", n.m.region);
+      render();
+    });
+    add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
+  }
+  if (focused) {
+    const lab = document.createElement("div");
+    lab.style.cssText = `transform:translate(${Math.round(focused.ox)}px, ${Math.round(focused.oy)}px);`;
+    lab.innerHTML = labelHtml(focused.m);
+    add(lab, focused.m.lat, focused.m.lng, 30);
+  }
+}
+
+function render() {
+  if (!kakao || !map) return;
+  clearOverlays();
+  const level = map.getLevel();
+  const pts = level <= FACE_LEVEL ? membersInView() : [];
+  const cap = level <= 10 ? 400 : 120;
+  if (pts.length && pts.length <= cap) renderMarkers(pts);
+  else renderBubbles();
 }
 
 onMounted(async () => {
@@ -78,6 +207,7 @@ onMounted(async () => {
       draggable: true,
     });
     map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+    kakao.maps.event.addListener(map, "idle", render);
     status.value = "ready";
     render();
   } catch {
@@ -86,13 +216,19 @@ onMounted(async () => {
   }
 });
 
-watch(() => [props.regions, props.selected], render, { deep: true });
-onBeforeUnmount(() => overlays.forEach((o) => o.setMap(null)));
+watch(() => [props.regions, props.members, props.selected], render, { deep: true });
+onBeforeUnmount(clearOverlays);
 </script>
 
 <template>
   <div class="relative">
     <div ref="mapEl" class="w-full h-[640px] lg:h-[760px] rounded-2xl overflow-hidden bg-toss-gray-100" />
+    <div
+      v-if="status === 'ready'"
+      class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
+    >
+      확대하면 의원 얼굴(표결색)로 표시
+    </div>
     <div
       v-if="status === 'loading'"
       class="absolute inset-0 grid place-items-center rounded-2xl bg-toss-gray-100 text-[13px] text-toss-gray-400"

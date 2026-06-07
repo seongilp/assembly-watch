@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Landmark, ChevronRight, ChevronDown, FileText, Download, ExternalLink } from "lucide-vue-next";
-import type { CommitteeListItem, MinuteSummary } from "#shared/types";
+import { Landmark, ChevronRight, ChevronDown, FileText, Download, ExternalLink, Video } from "lucide-vue-next";
+import type { CommitteeListItem } from "#shared/types";
 import { formatDate } from "~/lib/format";
 
 const { data, pending, error } = await useFetch<{ rows: CommitteeListItem[] }>(
@@ -15,25 +15,13 @@ const special = computed(() =>
   (data.value?.rows ?? []).filter((c) => c.div !== "상임위원회" && c.deptCd),
 );
 
-// 회의록 요약 인라인 펼침 (온디맨드 로드, 호버 시 프리페치)
+// 회의록 요약은 빌드 베이크(m.agenda/m.speakers) → 펼침만 토글(즉시)
 const openSummary = ref<Set<string>>(new Set());
-const summaries = ref<Record<string, MinuteSummary | "loading" | "error">>({});
-async function loadSummary(id: string) {
-  if (!id || summaries.value[id]) return;
-  summaries.value = { ...summaries.value, [id]: "loading" };
-  try {
-    const d = await $fetch<MinuteSummary>(`/api/minute/${id}`);
-    summaries.value = { ...summaries.value, [id]: d };
-  } catch {
-    summaries.value = { ...summaries.value, [id]: "error" };
-  }
-}
 function toggleSummary(id: string) {
   if (!id) return;
   const s = new Set(openSummary.value);
   s.has(id) ? s.delete(id) : s.add(id);
   openSummary.value = s;
-  if (s.has(id)) loadSummary(id);
 }
 
 useHead({ title: "위원회 · 의정감시" });
@@ -81,41 +69,32 @@ useHead({ title: "위원회 · 의정감시" });
                     <p class="text-[12px] text-toss-gray-400">{{ formatDate(m.date) }}</p>
                   </div>
                   <button
-                    v-if="m.id"
+                    v-if="m.agenda?.length || m.speakers?.length"
                     class="shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold transition-colors"
                     :class="openSummary.has(m.id) ? 'bg-toss-blue text-white' : 'bg-toss-gray-100 text-toss-gray-600 hover:bg-toss-gray-200'"
-                    @mouseenter="loadSummary(m.id)"
                     @click="toggleSummary(m.id)"
                   >
                     요약 <ChevronDown class="size-3 transition-transform" :class="openSummary.has(m.id) ? 'rotate-180' : ''" />
                   </button>
-                  <a v-else-if="m.summary" :href="m.summary" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2 py-1 text-[11px] font-bold text-toss-gray-600 hover:bg-toss-gray-200">요약</a>
+                  <a v-if="m.vod" :href="m.vod" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2 py-1 text-[11px] font-bold text-toss-gray-600 hover:bg-toss-gray-200"><Video class="size-3" />영상</a>
                   <a v-if="m.pdf" :href="m.pdf" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-blue-light px-2 py-1 text-[11px] font-bold text-toss-blue-dark hover:opacity-80"><Download class="size-3" />PDF</a>
                 </div>
 
-                <!-- 요약 인라인 펼침 -->
+                <!-- 요약 인라인 펼침 (빌드 베이크 — 즉시) -->
                 <div v-if="m.id && openSummary.has(m.id)" class="mt-3 border-t border-toss-gray-100 pt-3">
-                  <p v-if="summaries[m.id] === 'loading'" class="text-[12px] text-toss-gray-400">요약 불러오는 중…</p>
-                  <p v-else-if="summaries[m.id] === 'error'" class="text-[12px] text-toss-gray-400">
-                    요약을 불러오지 못했습니다. <a :href="m.summary" target="_blank" class="text-toss-blue font-semibold">원문 보기</a>
-                  </p>
-                  <template v-else-if="summaries[m.id]">
-                    <div v-if="(summaries[m.id] as any).agenda?.length" class="mb-3">
-                      <p class="text-[11px] font-bold text-toss-gray-500 mb-1.5">상정 안건 {{ (summaries[m.id] as any).agenda.length }}</p>
-                      <ol class="space-y-1">
-                        <li v-for="(a, j) in (summaries[m.id] as any).agenda" :key="j" class="text-[12.5px] text-toss-gray-700 leading-relaxed">{{ a }}</li>
-                      </ol>
-                    </div>
-                    <div v-if="(summaries[m.id] as any).speakers?.length">
-                      <p class="text-[11px] font-bold text-toss-gray-500 mb-1.5">발언·참석 위원 {{ (summaries[m.id] as any).speakers.length }}</p>
-                      <div class="flex flex-wrap gap-1.5">
-                        <span v-for="(sp, j) in (summaries[m.id] as any).speakers" :key="j" class="rounded-lg bg-toss-gray-100 px-2 py-1 text-[12px] text-toss-gray-600">{{ sp }}</span>
-                      </div>
-                    </div>
-                    <a :href="m.summary" target="_blank" class="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-toss-blue hover:text-toss-blue-dark">
-                      회의록 원문 보기 <ExternalLink class="size-3.5" />
-                    </a>
-                  </template>
+                  <div v-if="m.agenda?.length" class="mb-3">
+                    <p class="text-[11px] font-bold text-toss-gray-500 mb-1.5">상정 안건 {{ m.agenda.length }}</p>
+                    <ol class="space-y-1">
+                      <li v-for="(a, j) in m.agenda" :key="j" class="text-[12.5px] text-toss-gray-700 leading-relaxed">{{ a }}</li>
+                    </ol>
+                  </div>
+                  <div v-if="m.speakers?.length">
+                    <p class="text-[11px] font-bold text-toss-gray-500 mb-1.5">발언·참석 위원 {{ m.speakers.length }}</p>
+                    <MinuteSpeakers :speakers="m.speakers" />
+                  </div>
+                  <a :href="m.summary" target="_blank" class="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-toss-blue hover:text-toss-blue-dark">
+                    회의록 원문 보기 <ExternalLink class="size-3.5" />
+                  </a>
                 </div>
               </li>
             </ul>
