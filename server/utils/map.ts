@@ -33,6 +33,7 @@ export function mapMember(r: Record<string, unknown>): Member {
     birth: s(r.BTH_DATE),
     staff: s(r.STAFF),
     secretary: s(r.SECRETARY),
+    photo: "", // ALLNAMEMBER(NAAS_PIC) 로 별도 보강
   };
 }
 

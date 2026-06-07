@@ -17,10 +17,14 @@ export default defineCachedEventHandler(
     };
     if (!id) return empty;
 
-    // 1) 의원 찾기
+    // 1) 의원 찾기 + 사진 보강
     const mRes = await fetchAssembly(API.MEMBERS, { pSize: 350 });
     const member = mRes.rows.map(mapMember).find((m) => m.id === id);
     if (!member) return empty;
+    const photos = await $fetch<Record<string, string>>(
+      "/api/member-photos",
+    ).catch(() => ({}));
+    member.photo = photos[member.id] ?? "";
 
     // 2) 대표발의 법안 + 최근 표결 이력 병렬 조립
     const [bills, votes] = await Promise.all([

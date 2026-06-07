@@ -62,13 +62,31 @@ export default defineNuxtConfig({
     },
   },
 
-  // 운영(Workers) 캐싱
-  //  - 페이지 HTML 은 SWR 로 캐시하지 않음: 재배포 시 에셋 해시가 바뀌어
-  //    KV 에 남은 옛 HTML 이 사라진 /_nuxt/*.css 를 참조 → 스타일 깨짐을 유발.
-  //    페이지는 매번 fresh SSR (아래 API KV 캐시 덕에 충분히 빠름).
-  //  - API 응답은 defineCachedEventHandler 가 KV(CACHE 바인딩)에 영속 캐시
-  //    → 국회 Open API rate limit 보호 + 빠른 SSR.
+  // 운영(Workers) 캐싱 — 엣지 SWR 로 대부분 요청을 Worker SSR 없이 즉시 응답.
+  //  ⚠ 재배포 시 stale HTML 이 사라진 에셋을 참조하는 문제는 'bun run deploy'
+  //     마지막에 KV 캐시를 자동 퍼지(scripts/purge-kv.mjs)해서 방지.
   $production: {
+    routeRules: {
+      // 페이지: SSR HTML 을 엣지 SWR 캐시 (방문자는 엣지 HIT → ~수십 ms)
+      "/": { swr: 600 },
+      "/members": { swr: 21600 },
+      "/members/**": { swr: 3600 },
+      "/committees": { swr: 21600 },
+      "/bills": { swr: 600 },
+      "/votes": { swr: 600 },
+      "/votes/**": { swr: 3600 },
+      "/schedule": { swr: 1800 },
+      // API: 클라이언트측 호출도 엣지 SWR 캐시
+      "/api/stats": { swr: 1800 },
+      "/api/members": { swr: 21600 },
+      "/api/member-photos": { swr: 43200 },
+      "/api/members/**": { swr: 3600 },
+      "/api/committees": { swr: 21600 },
+      "/api/bills": { swr: 600 },
+      "/api/votes": { swr: 600 },
+      "/api/votes/**": { swr: 3600 },
+      "/api/schedule": { swr: 1800 },
+    },
     nitro: {
       storage: {
         cache: { driver: "cloudflare-kv-binding", binding: "CACHE" },

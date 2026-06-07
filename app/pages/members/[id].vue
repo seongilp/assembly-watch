@@ -87,12 +87,12 @@ const contacts = computed(() => {
       <!-- 프로필 헤더 -->
       <section class="rounded-2xl bg-card card-shadow p-6 sm:p-8">
         <div class="flex flex-col sm:flex-row sm:items-center gap-5">
-          <div
-            class="grid place-items-center size-20 shrink-0 rounded-3xl text-white font-extrabold text-[32px]"
-            :style="{ backgroundColor: partyColor(member.party) }"
-          >
-            {{ member.name.slice(0, 1) }}
-          </div>
+          <MemberAvatar
+            :name="member.name"
+            :party="member.party"
+            :photo="member.photo"
+            :size="84"
+          />
           <div class="min-w-0">
             <div class="flex items-center gap-2.5 flex-wrap">
               <h1 class="text-[26px] font-extrabold text-toss-gray-900 tracking-tight">

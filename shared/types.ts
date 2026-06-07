@@ -20,6 +20,7 @@ export interface Member {
   birth: string; // BTH_DATE
   staff: string; // STAFF
   secretary: string; // SECRETARY
+  photo: string; // NAAS_PIC (ALLNAMEMBER 에서 보강)
 }
 
 export interface Bill {

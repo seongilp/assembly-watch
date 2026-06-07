@@ -13,6 +13,8 @@ const CURRENT_AGE = 22;
 export const API = {
   /** 현직 국회의원 인적사항 (AGE 불필요) */
   MEMBERS: "nwvrqwxyaytdsfvhu",
+  /** 통합 의원 정보 (사진 NAAS_PIC 포함, 역대 전체) */
+  MEMBER_ALL: "ALLNAMEMBER",
   /** 계류의안 (AGE 불필요) */
   BILLS_PENDING: "nwbqublzajtcqpdae",
   /** 처리의안 (AGE 필요) */

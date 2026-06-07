@@ -7,7 +7,8 @@
     "dev": "nuxt dev --port 4191",
     "generate": "nuxt generate",
     "preview": "wrangler dev",
-    "deploy": "nuxt build && wrangler deploy",
+    "deploy": "nuxt build && wrangler deploy && node scripts/purge-kv.mjs",
+    "purge:kv": "node scripts/purge-kv.mjs",
     "cf:dev": "nuxt build && wrangler dev",
     "typecheck": "nuxt typecheck",
     "postinstall": "nuxt prepare"
