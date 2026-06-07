@@ -1,0 +1,141 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * 의정감시 — Toss 스타일 디자인 토큰
+ * 블루 & 화이트, 부드러운 라운드, 미세한 그림자
+ */
+:root {
+  --radius: 0.875rem;
+
+  /* 토스 컬러 시스템 */
+  --toss-blue: #3182f6;
+  --toss-blue-dark: #1b64da;
+  --toss-blue-light: #e8f3ff;
+  --toss-gray-50: #f9fafb;
+  --toss-gray-100: #f2f4f6;
+  --toss-gray-200: #e5e8eb;
+  --toss-gray-300: #d1d6db;
+  --toss-gray-400: #b0b8c1;
+  --toss-gray-500: #8b95a1;
+  --toss-gray-600: #6b7684;
+  --toss-gray-700: #4e5968;
+  --toss-gray-800: #333d4b;
+  --toss-gray-900: #191f28;
+  --toss-red: #f04452;
+  --toss-green: #00c896;
+  --toss-amber: #ff9500;
+
+  /* shadcn 토큰 매핑 */
+  --background: #ffffff;
+  --foreground: #191f28;
+  --card: #ffffff;
+  --card-foreground: #191f28;
+  --popover: #ffffff;
+  --popover-foreground: #191f28;
+  --primary: #3182f6;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f4f6;
+  --secondary-foreground: #333d4b;
+  --muted: #f2f4f6;
+  --muted-foreground: #8b95a1;
+  --accent: #e8f3ff;
+  --accent-foreground: #1b64da;
+  --destructive: #f04452;
+  --destructive-foreground: #ffffff;
+  --border: #e5e8eb;
+  --input: #e5e8eb;
+  --ring: #3182f6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-toss-blue: var(--toss-blue);
+  --color-toss-blue-dark: var(--toss-blue-dark);
+  --color-toss-blue-light: var(--toss-blue-light);
+  --color-toss-gray-50: var(--toss-gray-50);
+  --color-toss-gray-100: var(--toss-gray-100);
+  --color-toss-gray-200: var(--toss-gray-200);
+  --color-toss-gray-300: var(--toss-gray-300);
+  --color-toss-gray-400: var(--toss-gray-400);
+  --color-toss-gray-500: var(--toss-gray-500);
+  --color-toss-gray-600: var(--toss-gray-600);
+  --color-toss-gray-700: var(--toss-gray-700);
+  --color-toss-gray-800: var(--toss-gray-800);
+  --color-toss-gray-900: var(--toss-gray-900);
+  --color-toss-red: var(--toss-red);
+  --color-toss-green: var(--toss-green);
+  --color-toss-amber: var(--toss-amber);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--toss-gray-50);
+    color: var(--foreground);
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background-color: var(--toss-blue-light);
+    color: var(--toss-blue-dark);
+  }
+  /* 토스풍 스크롤바 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--toss-gray-300);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--toss-gray-400);
+  }
+}
+
+@utility card-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+@utility card-shadow-hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 28px rgba(49, 130, 246, 0.1);
+}

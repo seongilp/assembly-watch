@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uijeong-watch",
+  "main": "./.output/server/index.mjs",
+  "compatibility_date": "2025-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./.output/public"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "765a7ded764444f1a0284c749c5b9f67"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "routes": [
+    {
+      "pattern": "asm.zihado.com",
+      "custom_domain": true
+    }
+  ]
+}
