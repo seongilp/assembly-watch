@@ -130,7 +130,7 @@ useHead({ title: "국회의원 · 의정감시" });
           :to="`/members/${m.id}`"
           class="group flex items-center gap-3.5 rounded-2xl bg-card p-4 card-shadow transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
         >
-          <MemberAvatar :name="m.name" :party="m.party" :photo="m.photo" :size="48" />
+          <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="48" />
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2">
               <p class="text-[15px] font-bold text-toss-gray-900 group-hover:text-toss-blue">

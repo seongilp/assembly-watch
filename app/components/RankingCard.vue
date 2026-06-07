@@ -44,7 +44,7 @@ function valueOf(m: InsightMember) {
             class="w-5 text-center text-[13px] font-extrabold tabular-nums shrink-0"
             :style="{ color: i < 3 ? medal(i) : 'var(--toss-gray-400)' }"
           >{{ i + 1 }}</span>
-          <MemberAvatar :name="m.name" :party="m.party" :photo="m.photo" :size="36" />
+          <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="36" />
           <div class="min-w-0 flex-1">
             <p class="text-[14px] font-bold text-toss-gray-900 group-hover:text-toss-blue truncate">{{ m.name }}</p>
             <p class="text-[12px] text-toss-gray-400 truncate">

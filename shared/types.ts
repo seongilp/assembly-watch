@@ -72,6 +72,7 @@ export interface VoteRecord {
   result: string; // RESULT_VOTE_MOD (찬성/반대/기권/불참)
   date: string; // VOTE_DATE
   photo?: string; // 이름 매칭으로 보강
+  id?: string; // MONA_CD — 이름 매칭으로 보강(베이크 아바타용)
 }
 
 export interface Committee {

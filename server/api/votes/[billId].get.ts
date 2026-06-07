@@ -41,14 +41,17 @@ export default defineCachedEventHandler(
       }),
       fetchAssembly(API.MEMBERS, { pSize: 350 }),
     ]);
-    // 이름 → 사진 매핑 (현직 의원 기준)
+    // 이름 → (id, 사진) 매핑 (현직 의원 기준)
     const nameToPhoto: Record<string, string> = {};
+    const nameToId: Record<string, string> = {};
     for (const m of mRes.rows.map(mapMember)) {
+      nameToId[m.name] = m.id;
       const pic = PHOTOS[m.id];
       if (pic) nameToPhoto[m.name] = pic;
     }
     const rows = res.rows.map(mapVoteRecord).map((r) => ({
       ...r,
+      id: nameToId[r.name] ?? "",
       photo: nameToPhoto[r.name] ?? "",
     }));
 

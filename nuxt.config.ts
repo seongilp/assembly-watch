@@ -134,21 +134,24 @@ export default defineNuxtConfig({
   //     마지막에 KV 캐시를 자동 퍼지(scripts/purge-kv.mjs)해서 방지.
   $production: {
     routeRules: {
-      // HTML 은 브라우저가 매번 재검증 → 재배포 시 옛 HTML(죽은 에셋 참조) 캐시 방지.
-      // (/_nuxt/* 해시 에셋은 더 구체적 규칙으로 immutable 유지)
-      "/**": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      // HTML 만 브라우저가 매번 재검증 → 재배포 시 옛 HTML(죽은 에셋 참조) 캐시 방지.
+      // ⚠ 전역 "/**" 캐치올을 쓰면 /m/* 아바타·정적 에셋의 cache-control 과 합쳐져
+      //   (max-age=0 + max-age=2592000 중복) 브라우저가 매번 재검증 → 느려짐.
+      //   그래서 HTML 라우트에만 개별로 붙인다. (/_nuxt/*·/m/* 는 자기 규칙 유지)
+      // 베이크된 의원 아바타: id 기반 안정 파일명 → 브라우저 30일 캐시(엣지는 cf=HIT)
+      "/m/**": { headers: { "cache-control": "public, max-age=2592000" } },
       // 빌드타임 프리렌더 → CF 정적 에셋으로 엣지 직배(최속). 기본 뷰 기준.
-      "/members": { prerender: true },
-      "/committees": { prerender: true },
-      "/bills": { prerender: true },
-      "/votes": { prerender: true },
-      "/insights": { prerender: true },
-      "/": { prerender: true },
-      "/schedule": { prerender: true },
-      // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시
-      "/members/**": { swr: 3600 },
-      "/votes/**": { swr: 3600 },
-      "/committees/**": { swr: 3600 },
+      "/members": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/committees": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/bills": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/votes": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/insights": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/schedule": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시 + 브라우저 재검증
+      "/members/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/votes/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/committees/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },

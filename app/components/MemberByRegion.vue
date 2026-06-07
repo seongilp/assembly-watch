@@ -72,7 +72,7 @@ const mapRegions = computed(() =>
     <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
       <div class="inline-flex rounded-xl bg-toss-gray-100 p-0.5">
         <button
-          v-for="m in (['map', 'tile'] as const)"
+          v-for="m in (['tile', 'map'] as const)"
           :key="m"
           class="rounded-lg px-3 py-1.5 text-[13px] font-bold transition-all"
           :class="mode === m ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
@@ -167,7 +167,7 @@ const mapRegions = computed(() =>
             :to="`/members/${m.id}`"
             class="group flex items-center gap-3 rounded-xl bg-toss-gray-50 p-2.5 transition-colors hover:bg-toss-gray-100"
           >
-            <MemberAvatar :name="m.name" :party="m.party" :photo="m.photo" :size="40" />
+            <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="40" />
             <div class="min-w-0 flex-1">
               <p class="text-[14px] font-bold text-toss-gray-900 group-hover:text-toss-blue truncate">{{ m.name }}</p>
               <p class="text-[12px] text-toss-gray-500 truncate">{{ m.origin }}</p>

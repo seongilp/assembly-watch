@@ -88,6 +88,7 @@ const contacts = computed(() => {
       <section class="rounded-2xl bg-card card-shadow p-6 sm:p-8">
         <div class="flex flex-col sm:flex-row sm:items-center gap-5">
           <MemberAvatar
+            :id="member.id"
             :name="member.name"
             :party="member.party"
             :photo="member.photo"
