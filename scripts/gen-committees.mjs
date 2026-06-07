@@ -105,20 +105,22 @@ async function main() {
           .sort((a, b) => b.date.localeCompare(a.date))
           .slice(0, 3)
           .map(({ _k, ...m }) => m);
-        // 요약(상정안건+발언위원) 빌드 베이크 → 목록에서 즉시 표시(런타임 스크래핑 제거)
-        await Promise.all(
-          c.minutes.map(async (m) => {
-            if (!m.id) return;
-            const sum = await scrapeSummary(m.id);
-            m.agenda = sum.agenda;
-            m.speakers = sum.speakers;
-          }),
-        );
       } catch {
         c.minutes = [];
       }
     }),
   );
+
+  // 요약 베이크는 record 뷰어가 IP·세션 상태형이라 동시 요청 시 안건이 뒤섞임
+  // → 반드시 순차 스크래핑(한 번에 하나)으로 정확도 보장
+  for (const c of standing) {
+    for (const m of c.minutes ?? []) {
+      if (!m.id) continue;
+      const sum = await scrapeSummary(m.id);
+      m.agenda = sum.agenda;
+      m.speakers = sum.speakers;
+    }
+  }
 
   save(list);
   console.log(`[gen-committees] ${list.length}개 위원회 (상임 ${standing.length}, 회의록 베이크 완료)`);
