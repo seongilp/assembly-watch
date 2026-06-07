@@ -40,14 +40,14 @@ useHead({ title: "국회 일정 · 의정감시" });
     <div class="inline-flex rounded-2xl bg-toss-gray-100 p-1 mb-5">
       <button
         class="rounded-xl px-5 py-2 text-[14px] font-bold transition-all"
-        :class="upcoming ? 'bg-white text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+        :class="upcoming ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
         @click="upcoming = true"
       >
         예정
       </button>
       <button
         class="rounded-xl px-5 py-2 text-[14px] font-bold transition-all"
-        :class="!upcoming ? 'bg-white text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+        :class="!upcoming ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
         @click="upcoming = false"
       >
         전체
@@ -77,7 +77,7 @@ useHead({ title: "국회 일정 · 의정감시" });
             <li
               v-for="(s, i) in items"
               :key="i"
-              class="flex gap-3 rounded-2xl bg-white p-4 card-shadow"
+              class="flex gap-3 rounded-2xl bg-card p-4 card-shadow"
             >
               <span
                 class="mt-1 h-full w-1 shrink-0 rounded-full"

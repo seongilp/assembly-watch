@@ -15,7 +15,7 @@ watch(() => route.path, () => (open.value = false));
 
 <template>
   <header
-    class="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white/90 backdrop-blur border-b border-toss-gray-200"
+    class="lg:hidden sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-card/90 backdrop-blur border-b border-toss-gray-200"
   >
     <NuxtLink to="/" class="flex items-center gap-2">
       <div class="grid place-items-center size-7 rounded-lg bg-toss-blue text-white">
@@ -39,7 +39,7 @@ watch(() => route.path, () => (open.value = false));
               :class="
                 route.path === item.to ||
                 (item.to !== '/' && route.path.startsWith(item.to))
-                  ? 'bg-[#D6E7FF] text-toss-blue font-bold'
+                  ? 'bg-toss-blue text-white font-bold shadow-sm shadow-toss-blue/30'
                   : 'text-toss-gray-700 hover:bg-toss-gray-100'
               "
             >

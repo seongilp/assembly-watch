@@ -45,7 +45,7 @@ useHead({ title: "위원회 · 의정감시" });
           <div
             v-for="(c, i) in list"
             :key="c.name + i"
-            class="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 card-shadow"
+            class="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 card-shadow"
           >
             <div class="min-w-0">
               <p class="text-[15px] font-bold text-toss-gray-900 truncate">{{ c.name }}</p>

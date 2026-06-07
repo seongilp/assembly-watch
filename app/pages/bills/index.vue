@@ -47,7 +47,7 @@ useHead({ title: "의안 · 의정감시" });
         v-for="t in (['pending', 'processed'] as const)"
         :key="t"
         class="rounded-xl px-5 py-2 text-[14px] font-bold transition-all"
-        :class="type === t ? 'bg-white text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+        :class="type === t ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
         @click="type = t"
       >
         {{ t === "pending" ? "계류 의안" : "처리 의안" }}
@@ -60,7 +60,7 @@ useHead({ title: "의안 · 의정감시" });
         v-model="search"
         type="text"
         placeholder="의안명, 발의자 검색 (현재 페이지 기준)"
-        class="w-full h-12 rounded-2xl border-0 bg-white pl-11 pr-4 text-[15px] card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
+        class="w-full h-12 rounded-2xl border-0 bg-card pl-11 pr-4 text-[15px] card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
         @input="debounced"
       />
     </div>
@@ -78,7 +78,7 @@ useHead({ title: "의안 · 의정감시" });
         <li
           v-for="b in data?.rows"
           :key="b.id"
-          class="rounded-2xl bg-white card-shadow p-4 sm:p-5 transition-colors hover:bg-toss-gray-50"
+          class="rounded-2xl bg-card card-shadow p-4 sm:p-5 transition-colors hover:bg-toss-gray-50"
         >
           <a :href="b.link" target="_blank" class="group block">
             <div class="flex items-start justify-between gap-3">
@@ -111,7 +111,7 @@ useHead({ title: "의안 · 의정감시" });
       <!-- 페이지네이션 -->
       <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-2">
         <button
-          class="grid place-items-center size-10 rounded-xl bg-white card-shadow text-toss-gray-600 disabled:opacity-40"
+          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
           :disabled="page <= 1"
           @click="page--"
         >
@@ -121,7 +121,7 @@ useHead({ title: "의안 · 의정감시" });
           {{ page }} / {{ totalPages }}
         </span>
         <button
-          class="grid place-items-center size-10 rounded-xl bg-white card-shadow text-toss-gray-600 disabled:opacity-40"
+          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
           :disabled="page >= totalPages"
           @click="page++"
         >

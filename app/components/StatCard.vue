@@ -34,7 +34,7 @@ const tag = computed(() => (props.to ? NuxtLink : "div"));
   <component
     :is="tag"
     :to="to"
-    class="group block rounded-2xl bg-white p-5 card-shadow transition-all duration-200"
+    class="group block rounded-2xl bg-card p-5 card-shadow transition-all duration-200"
     :class="to ? 'hover:-translate-y-0.5 hover:card-shadow-hover cursor-pointer' : ''"
   >
     <div class="flex items-start justify-between">

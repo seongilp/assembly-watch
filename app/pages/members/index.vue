@@ -51,7 +51,7 @@ useHead({ title: "국회의원 · 의정감시" });
           v-model="search"
           type="text"
           placeholder="의원 이름, 지역구, 위원회 검색"
-          class="w-full h-12 rounded-2xl border-0 bg-white pl-11 pr-4 text-[15px] text-toss-gray-900 placeholder:text-toss-gray-400 card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
+          class="w-full h-12 rounded-2xl border-0 bg-card pl-11 pr-4 text-[15px] text-toss-gray-900 placeholder:text-toss-gray-400 card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
         />
       </div>
 
@@ -63,7 +63,7 @@ useHead({ title: "국회의원 · 의정감시" });
           :class="
             party === p
               ? 'bg-toss-gray-900 text-white'
-              : 'bg-white text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
+              : 'bg-card text-toss-gray-600 hover:bg-toss-gray-100 card-shadow'
           "
           @click="party = p"
         >
@@ -87,7 +87,7 @@ useHead({ title: "국회의원 · 의정감시" });
           v-for="m in filtered"
           :key="m.id"
           :to="`/members/${m.id}`"
-          class="group flex items-center gap-3.5 rounded-2xl bg-white p-4 card-shadow transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
+          class="group flex items-center gap-3.5 rounded-2xl bg-card p-4 card-shadow transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
         >
           <div
             class="grid place-items-center size-12 shrink-0 rounded-full text-white font-bold text-[16px]"

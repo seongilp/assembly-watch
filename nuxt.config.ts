@@ -5,7 +5,14 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
 
-  modules: ["shadcn-nuxt", "@vueuse/nuxt"],
+  modules: ["shadcn-nuxt", "@vueuse/nuxt", "@nuxtjs/color-mode"],
+
+  colorMode: {
+    classSuffix: "", // .dark / (light = no class) — tailwind dark variant 매칭
+    preference: "system",
+    fallback: "light",
+    storageKey: "uijeong-color-mode",
+  },
 
   css: ["~/assets/css/tailwind.css"],
 

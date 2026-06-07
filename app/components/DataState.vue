@@ -24,7 +24,7 @@ withDefaults(
 
   <div
     v-else-if="error"
-    class="grid place-items-center text-center rounded-2xl bg-white card-shadow py-16 px-6"
+    class="grid place-items-center text-center rounded-2xl bg-card card-shadow py-16 px-6"
   >
     <AlertCircle class="size-10 text-toss-red mb-3" />
     <p class="text-[15px] font-bold text-toss-gray-800">
@@ -37,7 +37,7 @@ withDefaults(
 
   <div
     v-else-if="empty"
-    class="grid place-items-center text-center rounded-2xl bg-white card-shadow py-16 px-6"
+    class="grid place-items-center text-center rounded-2xl bg-card card-shadow py-16 px-6"
   >
     <div class="grid place-items-center size-12 rounded-2xl bg-toss-gray-100 mb-3">
       <Inbox class="size-6 text-toss-gray-400" />

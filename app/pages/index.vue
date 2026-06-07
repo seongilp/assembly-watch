@@ -52,7 +52,7 @@ const updatedLabel = computed(() => {
       <template #actions>
         <span
           v-if="updatedLabel"
-          class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[12px] font-medium text-toss-gray-500 card-shadow"
+          class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[12px] font-medium text-toss-gray-500 card-shadow"
         >
           <span class="size-1.5 rounded-full bg-toss-green animate-pulse" />
           {{ updatedLabel }} 기준
@@ -102,7 +102,7 @@ const updatedLabel = computed(() => {
 
     <div class="mt-4 sm:mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
       <!-- 최근 본회의 표결 -->
-      <section class="lg:col-span-2 rounded-2xl bg-white card-shadow p-5 sm:p-6">
+      <section class="lg:col-span-2 rounded-2xl bg-card card-shadow p-5 sm:p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-[16px] font-bold text-toss-gray-900">최근 본회의 표결</h2>
           <NuxtLink
@@ -147,7 +147,7 @@ const updatedLabel = computed(() => {
       </section>
 
       <!-- 정당별 의석 -->
-      <section class="rounded-2xl bg-white card-shadow p-5 sm:p-6">
+      <section class="rounded-2xl bg-card card-shadow p-5 sm:p-6">
         <h2 class="text-[16px] font-bold text-toss-gray-900 mb-1">정당별 의석</h2>
         <p class="text-[12px] text-toss-gray-400 mb-4">
           현직 의원 {{ formatNumber(stats?.members ?? null) }}명 기준
@@ -160,7 +160,7 @@ const updatedLabel = computed(() => {
     </div>
 
     <!-- 다가오는 일정 -->
-    <section class="mt-4 sm:mt-6 rounded-2xl bg-white card-shadow p-5 sm:p-6">
+    <section class="mt-4 sm:mt-6 rounded-2xl bg-card card-shadow p-5 sm:p-6">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-[16px] font-bold text-toss-gray-900">다가오는 국회 일정</h2>
         <NuxtLink

@@ -13,7 +13,7 @@
   /* 토스 컬러 시스템 */
   --toss-blue: #3182f6;
   --toss-blue-dark: #1b64da;
-  --toss-blue-light: #e8f3ff;
+  --toss-blue-light: #d6e7ff;
   --toss-gray-50: #f9fafb;
   --toss-gray-100: #f2f4f6;
   --toss-gray-200: #e5e8eb;
@@ -48,6 +48,42 @@
   --border: #e5e8eb;
   --input: #e5e8eb;
   --ring: #3182f6;
+}
+
+/* 다크 모드 — toss-gray 스케일을 반전시켜 대부분의 색이 자동 적응 */
+.dark {
+  --toss-blue: #4a93ff;
+  --toss-blue-dark: #8fc0ff;
+  --toss-blue-light: #1c3a5e;
+
+  --toss-gray-50: #16181c; /* 페이지 배경 */
+  --toss-gray-100: #20242b; /* 서피스/호버 */
+  --toss-gray-200: #2c313a; /* 경계 */
+  --toss-gray-300: #3a414c;
+  --toss-gray-400: #5c646f;
+  --toss-gray-500: #8b95a1;
+  --toss-gray-600: #a7afba;
+  --toss-gray-700: #c3cad2;
+  --toss-gray-800: #dde1e6;
+  --toss-gray-900: #f2f4f6; /* 본문 텍스트(밝게) */
+
+  --background: #16181c;
+  --foreground: #f2f4f6;
+  --card: #1c1f25;
+  --card-foreground: #f2f4f6;
+  --popover: #1c1f25;
+  --popover-foreground: #f2f4f6;
+  --primary: #4a93ff;
+  --primary-foreground: #0a1220;
+  --secondary: #20242b;
+  --secondary-foreground: #dde1e6;
+  --muted: #20242b;
+  --muted-foreground: #8b95a1;
+  --accent: #1c3a5e;
+  --accent-foreground: #8fc0ff;
+  --border: #2c313a;
+  --input: #2c313a;
+  --ring: #4a93ff;
 }
 
 @theme inline {
@@ -138,4 +174,16 @@
 }
 @utility card-shadow-hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 12px 28px rgba(49, 130, 246, 0.1);
+}
+
+/* 다크: 부드러운 그림자가 안 보이므로 미세한 테두리 링 + 강한 그림자로 카드 분리 */
+.dark .card-shadow {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.dark .card-shadow-hover {
+  box-shadow:
+    0 0 0 1px rgba(74, 147, 255, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.6);
 }

@@ -15,7 +15,7 @@
   "dependencies": {
     "@lucide/vue": "^1.17.0",
     "@tanstack/vue-table": "^8.21.3",
-    "@vueuse/core": "^12.8.2",
+    "@vueuse/core": "^14.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.469.0",
@@ -26,6 +26,7 @@
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
+    "@nuxtjs/color-mode": "^4.0.0",
     "@tailwindcss/vite": "^4.1.13",
     "@vueuse/nuxt": "^12.8.2",
     "shadcn-nuxt": "^2.4.0",

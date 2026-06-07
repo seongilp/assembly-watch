@@ -55,13 +55,13 @@ useHead({ title: "본회의 표결 · 의정감시" });
           v-model="search"
           type="text"
           placeholder="의안명, 발의자, 위원회 검색"
-          class="w-full h-12 rounded-2xl border-0 bg-white pl-11 pr-4 text-[15px] card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
+          class="w-full h-12 rounded-2xl border-0 bg-card pl-11 pr-4 text-[15px] card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
           @input="debounced"
         />
       </div>
 
       <label
-        class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-white px-3.5 py-2 card-shadow"
+        class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-card px-3.5 py-2 card-shadow"
       >
         <input
           v-model="votedOnly"
@@ -89,7 +89,7 @@ useHead({ title: "본회의 표결 · 의정감시" });
         <li v-for="v in data?.rows" :key="v.billId">
           <NuxtLink
             :to="`/votes/${v.billId}`"
-            class="group block rounded-2xl bg-white card-shadow p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
+            class="group block rounded-2xl bg-card card-shadow p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
           >
             <div class="flex items-start justify-between gap-3 mb-3">
               <div class="min-w-0">
@@ -119,7 +119,7 @@ useHead({ title: "본회의 표결 · 의정감시" });
 
       <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-2">
         <button
-          class="grid place-items-center size-10 rounded-xl bg-white card-shadow text-toss-gray-600 disabled:opacity-40"
+          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
           :disabled="page <= 1"
           @click="page--"
         >
@@ -129,7 +129,7 @@ useHead({ title: "본회의 표결 · 의정감시" });
           {{ page }} / {{ totalPages }}
         </span>
         <button
-          class="grid place-items-center size-10 rounded-xl bg-white card-shadow text-toss-gray-600 disabled:opacity-40"
+          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
           :disabled="page >= totalPages"
           @click="page++"
         >

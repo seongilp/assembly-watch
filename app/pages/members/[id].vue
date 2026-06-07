@@ -79,13 +79,13 @@ const contacts = computed(() => {
       <ArrowLeft class="size-4" /> 국회의원 목록
     </NuxtLink>
 
-    <div v-if="!member && !pending" class="rounded-2xl bg-white card-shadow p-10 text-center">
+    <div v-if="!member && !pending" class="rounded-2xl bg-card card-shadow p-10 text-center">
       <p class="text-toss-gray-500">의원 정보를 찾을 수 없습니다.</p>
     </div>
 
     <template v-else-if="member">
       <!-- 프로필 헤더 -->
-      <section class="rounded-2xl bg-white card-shadow p-6 sm:p-8">
+      <section class="rounded-2xl bg-card card-shadow p-6 sm:p-8">
         <div class="flex flex-col sm:flex-row sm:items-center gap-5">
           <div
             class="grid place-items-center size-20 shrink-0 rounded-3xl text-white font-extrabold text-[32px]"
@@ -127,7 +127,7 @@ const contacts = computed(() => {
 
       <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 기본 정보 -->
-        <section class="rounded-2xl bg-white card-shadow p-6">
+        <section class="rounded-2xl bg-card card-shadow p-6">
           <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900 mb-4">
             <Building2 class="size-4 text-toss-blue" /> 기본 정보
           </h2>
@@ -146,7 +146,7 @@ const contacts = computed(() => {
         </section>
 
         <!-- 대표발의 법안 -->
-        <section class="lg:col-span-2 rounded-2xl bg-white card-shadow p-6">
+        <section class="lg:col-span-2 rounded-2xl bg-card card-shadow p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
               <FileText class="size-4 text-toss-blue" /> 대표발의 법안
@@ -195,7 +195,7 @@ const contacts = computed(() => {
       </div>
 
       <!-- 최근 본회의 표결 이력 -->
-      <section class="mt-4 rounded-2xl bg-white card-shadow p-6">
+      <section class="mt-4 rounded-2xl bg-card card-shadow p-6">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
             <Vote class="size-4 text-toss-blue" /> 최근 본회의 표결 이력
