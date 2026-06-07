@@ -71,6 +71,7 @@ export interface VoteRecord {
   origin: string; // ORIG_NM
   result: string; // RESULT_VOTE_MOD (찬성/반대/기권/불참)
   date: string; // VOTE_DATE
+  photo?: string; // 이름 매칭으로 보강
 }
 
 export interface Committee {
@@ -106,6 +107,31 @@ export interface MemberVote {
   date: string;
   result: string; // 찬성/반대/기권/불참
   procResult: string;
+}
+
+/** 펀팩트 랭킹 항목 */
+export interface InsightMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  photo: string;
+  count?: number;
+  rate?: number;
+  total?: number;
+  absent?: number;
+}
+
+export interface Insights {
+  generatedAt: string | null;
+  voteBills: number;
+  terms: InsightMember[];
+  proposed: InsightMember[];
+  absent: InsightMember[];
+  yes: InsightMember[];
+  no: InsightMember[];
+  blank: InsightMember[];
+  attendanceLow: InsightMember[];
 }
 
 /** 의원 상세 통합 응답 */

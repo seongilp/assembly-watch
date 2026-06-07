@@ -1,4 +1,7 @@
 import type { VoteRecord } from "#shared/types";
+import photos from "../../assets/member-photos.json";
+
+const PHOTOS = photos as Record<string, string>;
 
 interface RollCallBill {
   billId: string;
@@ -29,13 +32,25 @@ export default defineCachedEventHandler(
     if (!billId) {
       throw createError({ statusCode: 400, statusMessage: "billId 필요" });
     }
-    const res = await fetchAssembly(API.VOTES_ROLLCALL, {
-      AGE,
-      BILL_ID: billId,
-      pIndex: 1,
-      pSize: 320,
-    });
-    const rows = res.rows.map(mapVoteRecord);
+    const [res, mRes] = await Promise.all([
+      fetchAssembly(API.VOTES_ROLLCALL, {
+        AGE,
+        BILL_ID: billId,
+        pIndex: 1,
+        pSize: 320,
+      }),
+      fetchAssembly(API.MEMBERS, { pSize: 350 }),
+    ]);
+    // 이름 → 사진 매핑 (현직 의원 기준)
+    const nameToPhoto: Record<string, string> = {};
+    for (const m of mRes.rows.map(mapMember)) {
+      const pic = PHOTOS[m.id];
+      if (pic) nameToPhoto[m.name] = pic;
+    }
+    const rows = res.rows.map(mapVoteRecord).map((r) => ({
+      ...r,
+      photo: nameToPhoto[r.name] ?? "",
+    }));
 
     const tally = { 찬성: 0, 반대: 0, 기권: 0, 불참: 0 };
     for (const r of rows) {

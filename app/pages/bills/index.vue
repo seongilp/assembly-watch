@@ -6,12 +6,16 @@ import { formatDate } from "~/lib/format";
 const route = useRoute();
 const router = useRouter();
 
-const type = ref<"pending" | "processed">(
-  route.query.type === "processed" ? "processed" : "pending",
-);
+// 프리렌더(쿼리 무시)와 하이드레이션 일치를 위해 초기엔 기본값,
+// 쿼리(type=processed)는 마운트 후 동기화
+const type = ref<"pending" | "processed">("pending");
 const page = ref(1);
 const search = ref("");
 const size = 20;
+
+onMounted(() => {
+  if (route.query.type === "processed") type.value = "processed";
+});
 
 watch(type, () => {
   page.value = 1;

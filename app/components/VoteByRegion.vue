@@ -61,7 +61,7 @@ const regions = computed(() =>
   ),
 );
 
-const mode = ref<"map" | "tile">("map");
+const mode = ref<"map" | "tile">("tile");
 const selected = ref<string | null>(null);
 const selectedStat = computed(() =>
   selected.value ? stats.value[selected.value] : null,
@@ -114,7 +114,7 @@ const mapRegions = computed(() =>
         @error="mode = 'tile'"
       />
       <template #fallback>
-        <div class="h-[460px] grid place-items-center rounded-2xl bg-toss-gray-100 text-[13px] text-toss-gray-400">
+        <div class="h-[640px] lg:h-[760px] grid place-items-center rounded-2xl bg-toss-gray-100 text-[13px] text-toss-gray-400">
           지도 준비 중…
         </div>
       </template>

@@ -92,7 +92,7 @@ onBeforeUnmount(() => overlays.forEach((o) => o.setMap(null)));
 
 <template>
   <div class="relative">
-    <div ref="mapEl" class="w-full h-[460px] rounded-2xl overflow-hidden bg-toss-gray-100" />
+    <div ref="mapEl" class="w-full h-[640px] lg:h-[760px] rounded-2xl overflow-hidden bg-toss-gray-100" />
     <div
       v-if="status === 'loading'"
       class="absolute inset-0 grid place-items-center rounded-2xl bg-toss-gray-100 text-[13px] text-toss-gray-400"

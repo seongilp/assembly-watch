@@ -1,4 +1,18 @@
+import { existsSync, readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
+
+// 빌드 전 생성된 member-details.json 으로 의원 상세 프리렌더 라우트 구성
+function memberRoutes(): string[] {
+  try {
+    const p = "./server/assets/member-details.json";
+    if (!existsSync(p)) return [];
+    return Object.keys(JSON.parse(readFileSync(p, "utf8"))).map(
+      (id) => `/members/${id}`,
+    );
+  } catch {
+    return [];
+  }
+}
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -60,6 +74,11 @@ export default defineNuxtConfig({
       nodeCompat: true,
       deployConfig: false, // wrangler.jsonc 를 직접 관리
     },
+    // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
+    prerender: {
+      crawlLinks: false,
+      routes: memberRoutes(),
+    },
   },
 
   // 운영(Workers) 캐싱 — 엣지 SWR 로 대부분 요청을 Worker SSR 없이 즉시 응답.
@@ -67,14 +86,15 @@ export default defineNuxtConfig({
   //     마지막에 KV 캐시를 자동 퍼지(scripts/purge-kv.mjs)해서 방지.
   $production: {
     routeRules: {
-      // 거의 안 바뀌는 목록은 빌드타임 프리렌더 → CF 정적 에셋으로 엣지 직배(최속)
+      // 빌드타임 프리렌더 → CF 정적 에셋으로 엣지 직배(최속). 기본 뷰 기준.
       "/members": { prerender: true },
       "/committees": { prerender: true },
+      "/bills": { prerender: true },
+      "/votes": { prerender: true },
+      "/insights": { prerender: true },
       // 나머지 페이지: SSR HTML 을 엣지 SWR 캐시
       "/": { swr: 600 },
       "/members/**": { swr: 3600 },
-      "/bills": { swr: 600 },
-      "/votes": { swr: 600 },
       "/votes/**": { swr: 3600 },
       "/schedule": { swr: 1800 },
       // API: 클라이언트측 호출도 엣지 SWR 캐시

@@ -1,12 +1,16 @@
 import type { Bill, MemberVote, MemberDetail } from "#shared/types";
-import type { RollCallResponse } from "../votes/[billId].get";
 import photos from "../../assets/member-photos.json";
+import details from "../../assets/member-details.json";
 
 const PHOTOS = photos as Record<string, string>;
+const DETAILS = details as Record<
+  string,
+  { bills: Bill[]; votes: MemberVote[]; votesScanned: number }
+>;
 
 /**
  * 의원 상세 통합: 인적사항 + 대표발의 법안 + 최근 본회의 표결 이력
- * 서버에서 한 번에 조립 → 클라이언트 하이드레이션 불일치 방지.
+ * 발의·표결은 빌드타임 정적 베이크(member-details.json) → 런타임 무거운 호출 0.
  * GET /api/members/:id   (id = MONA_CD)
  */
 export default defineCachedEventHandler(
@@ -20,73 +24,22 @@ export default defineCachedEventHandler(
     };
     if (!id) return empty;
 
-    // 1) 의원 찾기 + 사진 보강
     const mRes = await fetchAssembly(API.MEMBERS, { pSize: 350 });
     const member = mRes.rows.map(mapMember).find((m) => m.id === id);
     if (!member) return empty;
     member.photo = PHOTOS[member.id] ?? "";
 
-    // 2) 대표발의 법안 + 최근 표결 이력 병렬 조립
-    const [bills, votes] = await Promise.all([
-      loadBills(member.name),
-      loadVotes(member.name),
-    ]);
-
+    const d = DETAILS[id] ?? { bills: [], votes: [], votesScanned: 0 };
     return {
       member,
-      bills,
-      votes: votes.rows,
-      votesScanned: votes.scanned,
+      bills: d.bills,
+      votes: d.votes,
+      votesScanned: d.votesScanned,
     };
   },
   {
-    maxAge: 60 * 30,
+    maxAge: 60 * 60 * 6,
     name: "member-detail",
     getKey: (event) => getRouterParam(event, "id") ?? "none",
   },
 );
-
-/** 대표발의 법안 (이름 기준 매칭) */
-async function loadBills(name: string): Promise<Bill[]> {
-  const res = await fetchAssembly(API.BILLS_PROPOSED, {
-    AGE,
-    pIndex: 1,
-    pSize: 1000,
-  });
-  return res.rows.map(mapProposedBill).filter((b) => b.proposer.startsWith(name));
-}
-
-/** 최근 본회의 표결 이력 — 표결 명단(KV 캐시 공유)에서 본인 표결 추출 */
-async function loadVotes(
-  name: string,
-): Promise<{ rows: MemberVote[]; scanned: number }> {
-  const list = await fetchAssembly(API.VOTES_PLENARY, { AGE, pSize: 60 });
-  const bills = list.rows
-    .map(mapVoteSummary)
-    .filter((v) => v.total != null)
-    .slice(0, 15);
-
-  const results = await Promise.all(
-    bills.map(async (b): Promise<MemberVote | null> => {
-      try {
-        const rc = await $fetch<RollCallResponse>(`/api/votes/${b.billId}`);
-        const rec = rc.rows.find((r) => r.name === name);
-        if (!rec) return null;
-        return {
-          billId: b.billId,
-          billName: b.billName,
-          date: b.procDt,
-          result: rec.result,
-          procResult: b.procResult,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  return {
-    rows: results.filter((r): r is MemberVote => r !== null),
-    scanned: bills.length,
-  };
-}
