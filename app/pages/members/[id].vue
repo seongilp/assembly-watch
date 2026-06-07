@@ -9,8 +9,9 @@ import {
   ExternalLink,
   Building2,
   Vote,
+  Crown,
 } from "lucide-vue-next";
-import type { MemberDetail } from "#shared/types";
+import type { MemberDetail, Insights } from "#shared/types";
 import { partyColor } from "~/lib/party";
 import { formatDate, voteStyle } from "~/lib/format";
 
@@ -25,6 +26,16 @@ const { data, pending } = await useFetch<MemberDetail>(
 );
 
 const member = computed(() => data.value?.member ?? undefined);
+
+// 불참왕/기권왕 칭호 (펀팩트 1위와 일치 시)
+const { data: insights } = await useFetch<Insights>("/api/insights", { key: "insights" });
+const titles = computed(() => {
+  const t: string[] = [];
+  if (insights.value?.absent?.[0]?.id === id.value) t.push("불참왕");
+  if (insights.value?.blank?.[0]?.id === id.value) t.push("기권왕");
+  if (insights.value?.proposed?.[0]?.id === id.value) t.push("발의왕");
+  return t;
+});
 const bills = computed(() => ({ rows: data.value?.bills ?? [] }));
 const votes = computed(() => ({
   rows: data.value?.votes ?? [],
@@ -101,6 +112,13 @@ const contacts = computed(() => {
               </h1>
               <span class="text-[15px] text-toss-gray-400">{{ member.hanja }}</span>
               <PartyBadge :party="member.party" />
+              <span
+                v-for="t in titles"
+                :key="t"
+                class="inline-flex items-center gap-1 rounded-full bg-[#FFB400]/15 px-2.5 py-1 text-[12px] font-extrabold text-[#C98A00]"
+              >
+                <Crown class="size-3.5 fill-[#FFB400] text-[#FFB400]" /> {{ t }}
+              </span>
             </div>
             <p class="mt-1 text-[14px] text-toss-gray-500">
               {{ member.origin || member.electType }} · {{ member.reelection }}

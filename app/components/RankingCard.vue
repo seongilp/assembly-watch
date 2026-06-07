@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { LucideIcon } from "lucide-vue-next";
+import { Crown, type LucideIcon } from "lucide-vue-next";
 import type { InsightMember } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
 
@@ -12,8 +12,9 @@ const props = withDefaults(
     unit?: string;
     accent?: string; // hex
     limit?: number;
+    crown?: string; // 1위 칭호 (예: "불참왕")
   }>(),
-  { metric: "count", unit: "", accent: "#3182F6", limit: 10 },
+  { metric: "count", unit: "", accent: "#3182F6", limit: 10, crown: "" },
 );
 
 const list = computed(() => props.items.slice(0, props.limit));
@@ -44,9 +45,18 @@ function valueOf(m: InsightMember) {
             class="w-5 text-center text-[13px] font-extrabold tabular-nums shrink-0"
             :style="{ color: i < 3 ? medal(i) : 'var(--toss-gray-400)' }"
           >{{ i + 1 }}</span>
-          <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="36" />
+          <div class="relative shrink-0">
+            <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="36" />
+            <Crown
+              v-if="crown && i === 0"
+              class="absolute -top-2 -right-1.5 size-4 rotate-12 fill-[#FFB400] text-[#FFB400] drop-shadow"
+            />
+          </div>
           <div class="min-w-0 flex-1">
-            <p class="text-[14px] font-bold text-toss-gray-900 group-hover:text-toss-blue truncate">{{ m.name }}</p>
+            <p class="flex items-center gap-1.5 text-[14px] font-bold text-toss-gray-900 group-hover:text-toss-blue truncate">
+              {{ m.name }}
+              <span v-if="crown && i === 0" class="shrink-0 rounded-full bg-[#FFB400]/15 px-1.5 py-0.5 text-[10px] font-extrabold text-[#C98A00]">👑 {{ crown }}</span>
+            </p>
             <p class="text-[12px] text-toss-gray-400 truncate">
               {{ normalizeParty(m.party) }}<template v-if="m.origin"> · {{ m.origin }}</template>
             </p>

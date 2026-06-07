@@ -36,6 +36,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.absent ?? []"
         unit="회"
         accent="#8B95A1"
+        crown="불참왕"
       />
       <RankingCard
         title="가장 많이 찬성한 의원"
@@ -57,6 +58,7 @@ useHead({ title: "펀팩트 · 의정감시" });
         :items="data?.blank ?? []"
         unit="회"
         accent="#FF9500"
+        crown="기권왕"
       />
       <RankingCard
         title="출석률(투표 참여) 낮은 의원"
