@@ -76,16 +76,6 @@ function faceHtml(m: VotePt, focused: boolean) {
     </div>`;
 }
 
-function labelHtml(m: VotePt) {
-  return `
-    <div style="pointer-events:none;transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
-                background:#191F28;color:#fff;border-radius:9px;padding:5px 9px;
-                box-shadow:0 3px 10px rgba(0,0,0,.35);font-family:Pretendard,sans-serif;">
-      <div style="font-size:12px;font-weight:800;">${m.name} <span style="font-weight:700;color:${m.color};">${m.result}</span></div>
-      <div style="font-size:11px;color:#C9CDD2;margin-top:1px;">${m.origin}</div>
-    </div>`;
-}
-
 function px(lat: number, lng: number): { x: number; y: number } | null {
   try {
     const p = map.getProjection().containerPointFromCoords(new kakao.maps.LatLng(lat, lng));
@@ -165,10 +155,8 @@ function renderBubbles() {
 
 function renderMarkers(nodes: any[]) {
   declutter(nodes, 40, 40, 3);
-  let focused: any = null;
   for (const n of nodes) {
     const isF = n.m.id === focusedId.value;
-    if (isF) focused = n;
     const el = document.createElement("div");
     el.style.cssText = `transform:translate(${Math.round(n.ox)}px, ${Math.round(n.oy)}px);`;
     el.innerHTML = faceHtml(n.m, isF);
@@ -179,13 +167,9 @@ function renderMarkers(nodes: any[]) {
     });
     add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
   }
-  if (focused) {
-    const lab = document.createElement("div");
-    lab.style.cssText = `transform:translate(${Math.round(focused.ox)}px, ${Math.round(focused.oy)}px);`;
-    lab.innerHTML = labelHtml(focused.m);
-    add(lab, focused.m.lat, focused.m.lng, 30);
-  }
 }
+
+const focusedMember = computed(() => props.members.find((m) => m.id === focusedId.value) ?? null);
 
 function render() {
   if (!kakao || !map) return;
@@ -223,8 +207,19 @@ onBeforeUnmount(clearOverlays);
 <template>
   <div class="relative">
     <div ref="mapEl" class="w-full h-[640px] lg:h-[760px] rounded-2xl overflow-hidden bg-toss-gray-100" />
+    <NuxtLink
+      v-if="status === 'ready' && focusedMember"
+      :to="`/members/${focusedMember.id}`"
+      class="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-xl bg-card/95 px-3 py-2 card-shadow hover:bg-card"
+    >
+      <MemberAvatar :id="focusedMember.id" :name="focusedMember.name" party="" :photo="''" :size="32" />
+      <div class="leading-tight">
+        <p class="text-[13px] font-bold text-toss-gray-900">{{ focusedMember.name }} <span class="text-[11px] font-bold" :style="{ color: focusedMember.color }">{{ focusedMember.result }}</span></p>
+        <p class="text-[11px] text-toss-gray-500">{{ focusedMember.origin }}</p>
+      </div>
+    </NuxtLink>
     <div
-      v-if="status === 'ready'"
+      v-else-if="status === 'ready'"
       class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
     >
       확대하면 의원 얼굴(표결색)로 표시

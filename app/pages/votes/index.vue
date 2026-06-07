@@ -59,6 +59,8 @@ useHead({ title: "본회의 표결 · 의정감시" });
       subtitle="본회의에 부의된 안건의 찬반 결과 — 클릭하면 의원별 표결 명단을 확인합니다."
     />
 
+    <VoteStatsPanel />
+
     <div class="mb-5 space-y-3">
       <div class="relative">
         <Search class="absolute left-4 top-1/2 -translate-y-1/2 size-[18px] text-toss-gray-400" />

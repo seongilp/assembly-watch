@@ -121,14 +121,17 @@ const toggle = (p: string) => {
             <span class="text-toss-gray-400 font-semibold">{{ grp.members.length }}</span>
           </p>
           <div class="flex flex-wrap gap-1.5">
-            <span
+            <component
+              :is="m.id ? 'NuxtLink' : 'span'"
               v-for="(m, i) in grp.members"
               :key="m.name + i"
-              class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold"
+              :to="m.id ? `/members/${m.id}` : undefined"
+              class="inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-[12px] font-semibold transition-opacity hover:opacity-80"
               :style="{ color: voteStyle(m.result).fg, backgroundColor: voteStyle(m.result).bg }"
             >
+              <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="20" />
               {{ m.name }}
-            </span>
+            </component>
           </div>
         </div>
       </div>

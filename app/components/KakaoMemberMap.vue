@@ -131,17 +131,6 @@ function faceHtml(m: MemberPt, focused: boolean) {
     </div>`;
 }
 
-// 클릭한 의원의 선거구 라벨(지도 오버레이)
-function labelHtml(m: MemberPt) {
-  return `
-    <div style="pointer-events:none;transform:translate(-50%,-100%);margin-top:-30px;white-space:nowrap;
-                background:#191F28;color:#fff;border-radius:9px;padding:5px 9px;
-                box-shadow:0 3px 10px rgba(0,0,0,.35);font-family:Pretendard,sans-serif;">
-      <div style="font-size:12px;font-weight:800;">${m.name} <span style="font-weight:600;color:${m.color === "#152484" ? "#9DB2FF" : m.color};">${m.party}</span></div>
-      <div style="font-size:11px;color:#C9CDD2;margin-top:1px;">${m.origin}</div>
-    </div>`;
-}
-
 function px(lat: number, lng: number): { x: number; y: number } | null {
   try {
     const p = map.getProjection().containerPointFromCoords(new kakao.maps.LatLng(lat, lng));
@@ -256,14 +245,10 @@ function renderMarkers(nodes: any[]) {
     });
     add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
   }
-  // 클릭한 의원 선거구 라벨 오버레이(맨 위)
-  if (focused) {
-    const lab = document.createElement("div");
-    lab.style.cssText = `transform:translate(${Math.round(focused.ox)}px, ${Math.round(focused.oy)}px);`;
-    lab.innerHTML = labelHtml(focused.m);
-    add(lab, focused.m.lat, focused.m.lng, 30);
-  }
+  // 선거구 라벨은 지도 위 오버레이 대신 좌상단 배너로(마커 클릭 가림 방지)
 }
+
+const focusedMember = computed(() => props.members.find((m) => m.id === focusedId.value) ?? null);
 
 function render() {
   if (!kakao || !map) return;
@@ -308,8 +293,20 @@ onBeforeUnmount(() => {
 <template>
   <div class="relative">
     <div ref="mapEl" class="w-full h-[640px] lg:h-[760px] rounded-2xl overflow-hidden bg-toss-gray-100" />
+    <!-- 클릭한 의원 정보(좌상단 배너) — 마커 위를 덮지 않아 클릭 방해 없음 -->
+    <NuxtLink
+      v-if="status === 'ready' && focusedMember"
+      :to="`/members/${focusedMember.id}`"
+      class="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-xl bg-card/95 px-3 py-2 card-shadow hover:bg-card"
+    >
+      <MemberAvatar :id="focusedMember.id" :name="focusedMember.name" :party="focusedMember.party" :photo="''" :size="32" />
+      <div class="leading-tight">
+        <p class="text-[13px] font-bold text-toss-gray-900">{{ focusedMember.name }} <span class="text-[11px] font-semibold" :style="{ color: focusedMember.color }">{{ focusedMember.party }}</span></p>
+        <p class="text-[11px] text-toss-gray-500">{{ focusedMember.origin }}</p>
+      </div>
+    </NuxtLink>
     <div
-      v-if="status === 'ready'"
+      v-else-if="status === 'ready'"
       class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
     >
       확대하면 의원 얼굴 · 클릭하면 선거구 표시

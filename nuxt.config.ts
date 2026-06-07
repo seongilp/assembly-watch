@@ -14,14 +14,13 @@ function memberRoutes(): string[] {
   }
 }
 
-// 최근 표결 60건 상세도 프리렌더 (자주 클릭되는 경로)
+// 최근 표결 상세 페이지 + API 모두 프리렌더 (목록 인앱 펼침도 cf=HIT 즉시)
 function voteRoutes(): string[] {
   try {
     const p = "./server/assets/voted-bills.json";
     if (!existsSync(p)) return [];
-    return (JSON.parse(readFileSync(p, "utf8")) as string[]).map(
-      (id) => `/votes/${id}`,
-    );
+    const ids = JSON.parse(readFileSync(p, "utf8")) as string[];
+    return ids.flatMap((id) => [`/votes/${id}`, `/api/votes/${id}`]);
   } catch {
     return [];
   }

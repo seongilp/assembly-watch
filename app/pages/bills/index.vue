@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, Users } from "lucide-vue-next";
-import type { Bill, BillProposers } from "#shared/types";
+import type { Bill, BillProposers, MemberListItem } from "#shared/types";
 import { formatDate } from "~/lib/format";
 
 const route = useRoute();
 const router = useRouter();
 const partyClr = usePartyColor();
+
+// 발의의원 이름→현직의원(사진/링크) 매핑
+const { data: membersData } = useFetch<{ rows: MemberListItem[] }>("/api/members", {
+  key: "members",
+  lazy: true,
+});
+const memberByName = computed(
+  () => new Map((membersData.value?.rows ?? []).map((r) => [r.name, r])),
+);
 
 // 카드 클릭 → 인앱 펼침: 공동발의자 정당별(클릭 시 명단) — 한 화면에서
 const openId = ref<string | null>(null);
@@ -144,11 +153,24 @@ useHead({ title: "의안 · 의정감시" });
                 </button>
               </div>
               <div v-if="openParty[b.id]" class="mt-2.5 flex flex-wrap gap-1.5">
-                <span
+                <component
+                  :is="memberByName.get(nm) ? 'NuxtLink' : 'span'"
                   v-for="nm in (proposers[b.id] as BillProposers).byParty.find((x) => x.party === openParty[b.id])?.names"
                   :key="nm"
-                  class="rounded-lg bg-toss-gray-100 px-2 py-1 text-[12px] font-semibold text-toss-gray-700"
-                >{{ nm }}</span>
+                  :to="memberByName.get(nm) ? `/members/${memberByName.get(nm)!.id}` : undefined"
+                  class="inline-flex items-center gap-1.5 rounded-full bg-toss-gray-100 py-0.5 pl-0.5 pr-2.5 text-[12px] font-semibold text-toss-gray-700"
+                  :class="memberByName.get(nm) ? 'hover:bg-toss-gray-200 transition-colors' : ''"
+                >
+                  <MemberAvatar
+                    v-if="memberByName.get(nm)"
+                    :id="memberByName.get(nm)!.id"
+                    :name="nm"
+                    :party="memberByName.get(nm)!.party"
+                    :photo="memberByName.get(nm)!.photo"
+                    :size="22"
+                  />
+                  {{ nm }}
+                </component>
               </div>
             </template>
           </div>

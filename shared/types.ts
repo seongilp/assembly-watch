@@ -50,6 +50,20 @@ export interface Bill {
   stage?: string; // 계류 의안 심사 단계 (접수/위원회 회부/심사/의결/본회의 대기)
 }
 
+/** 정당별 누적 표결 통계 */
+export interface VotePartyStat {
+  party: string;
+  찬성: number;
+  반대: number;
+  기권: number;
+  불참: number;
+  total: number;
+}
+export interface VoteStats {
+  bills: number;
+  parties: VotePartyStat[];
+}
+
 /** 의안 공동발의자(정당별 그룹) */
 export interface BillProposer {
   name: string;
