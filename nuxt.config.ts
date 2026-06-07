@@ -67,11 +67,12 @@ export default defineNuxtConfig({
   //     마지막에 KV 캐시를 자동 퍼지(scripts/purge-kv.mjs)해서 방지.
   $production: {
     routeRules: {
-      // 페이지: SSR HTML 을 엣지 SWR 캐시 (방문자는 엣지 HIT → ~수십 ms)
+      // 거의 안 바뀌는 목록은 빌드타임 프리렌더 → CF 정적 에셋으로 엣지 직배(최속)
+      "/members": { prerender: true },
+      "/committees": { prerender: true },
+      // 나머지 페이지: SSR HTML 을 엣지 SWR 캐시
       "/": { swr: 600 },
-      "/members": { swr: 21600 },
       "/members/**": { swr: 3600 },
-      "/committees": { swr: 21600 },
       "/bills": { swr: 600 },
       "/votes": { swr: 600 },
       "/votes/**": { swr: 3600 },
