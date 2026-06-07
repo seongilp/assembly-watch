@@ -62,13 +62,22 @@ export default defineCachedEventHandler(
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 40);
 
+    // 회의록은 안건 수만큼 행이 중복 → CONF_ID(없으면 제목)로 1회의=1행 dedupe
+    const seenConf = new Set<string>();
     const minutes: CommitteeMinute[] = [...min.rows, ...minPrev.rows]
       .map((r) => ({
         title: s(r.TITLE),
         date: s(r.CONF_DATE),
         pdf: s(r.PDF_LINK_URL),
-        link: s(r.CONF_LINK_URL),
+        summary: s(r.CONF_LINK_URL), // type=summary 요약 뷰어
+        _key: s(r.CONF_ID) || s(r.TITLE) + s(r.CONF_DATE),
       }))
+      .filter((m) => {
+        if (seenConf.has(m._key)) return false;
+        seenConf.add(m._key);
+        return true;
+      })
+      .map(({ _key, ...m }) => m)
       .sort((a, b) => b.date.localeCompare(a.date))
       .slice(0, 40);
 

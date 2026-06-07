@@ -105,8 +105,8 @@ export interface CommitteeMeeting {
 export interface CommitteeMinute {
   title: string; // TITLE
   date: string; // CONF_DATE
-  pdf: string; // PDF_LINK_URL
-  link: string; // CONF_LINK_URL
+  pdf: string; // PDF_LINK_URL (전체 PDF)
+  summary: string; // CONF_LINK_URL (type=summary, 요약 뷰어)
 }
 
 export interface CommitteeDetail {

@@ -1,42 +1,35 @@
 <script setup lang="ts">
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronRight as Arrow,
-  Search,
-} from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, ChevronRight as Arrow, Search } from "lucide-vue-next";
 import type { VoteSummary, Paged } from "#shared/types";
 import { formatDate } from "~/lib/format";
 
-const page = ref(1);
+// 최근 300건을 1회만 로드(프리렌더 페이로드) → 필터/검색/페이지는 전부 클라이언트(즉시)
+const { data, pending, error } = await useFetch<Paged<VoteSummary>>("/api/votes", {
+  query: { size: 300 },
+  key: "votes-all",
+});
+
 const votedOnly = ref(true);
 const dissentOnly = ref(false);
 const search = ref("");
+const page = ref(1);
 const size = 20;
 
-watch([votedOnly, dissentOnly], () => (page.value = 1));
+watch([votedOnly, dissentOnly, search], () => (page.value = 1));
 
-const debounced = useDebounceFn(() => {
-  page.value = 1;
-}, 350);
-
-const { data, pending, error } = await useFetch<Paged<VoteSummary>>("/api/votes", {
-  query: {
-    page,
-    size,
-    votedOnly: computed(() => (votedOnly.value ? 1 : 0)),
-    dissent: computed(() => (dissentOnly.value ? 1 : 0)),
-    q: search,
-  },
+const filtered = computed(() => {
+  const q = search.value.trim();
+  return (data.value?.rows ?? []).filter((v) => {
+    if (votedOnly.value && v.total == null) return false;
+    if (dissentOnly.value && (v.no ?? 0) <= 0) return false;
+    if (q && !(v.billName.includes(q) || v.proposer.includes(q) || v.committee.includes(q)))
+      return false;
+    return true;
+  });
 });
-
-const searching = computed(
-  () => search.value.trim().length > 0 || dissentOnly.value,
-);
-const totalPages = computed(() =>
-  searching.value
-    ? 1
-    : Math.min(50, Math.ceil((data.value?.totalCount ?? 0) / size)),
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / size)));
+const shown = computed(() =>
+  filtered.value.slice((page.value - 1) * size, page.value * size),
 );
 
 useHead({ title: "본회의 표결 · 의정감시" });
@@ -52,58 +45,38 @@ useHead({ title: "본회의 표결 · 의정감시" });
 
     <div class="mb-5 space-y-3">
       <div class="relative">
-        <Search
-          class="absolute left-4 top-1/2 -translate-y-1/2 size-[18px] text-toss-gray-400"
-        />
+        <Search class="absolute left-4 top-1/2 -translate-y-1/2 size-[18px] text-toss-gray-400" />
         <input
           v-model="search"
           type="text"
           placeholder="의안명, 발의자, 위원회 검색"
           class="w-full h-12 rounded-2xl border-0 bg-card pl-11 pr-4 text-[15px] card-shadow focus:outline-none focus:ring-2 focus:ring-toss-blue/40"
-          @input="debounced"
         />
       </div>
 
       <div class="flex flex-wrap gap-2">
-        <label
-          class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-card px-3.5 py-2 card-shadow"
-        >
-          <input
-            v-model="votedOnly"
-            type="checkbox"
-            class="size-4 rounded accent-toss-blue"
-          />
-          <span class="text-[13px] font-semibold text-toss-gray-600"
-            >표결 집계가 있는 안건만</span
-          >
+        <label class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-card px-3.5 py-2 card-shadow">
+          <input v-model="votedOnly" type="checkbox" class="size-4 rounded accent-toss-blue" />
+          <span class="text-[13px] font-semibold text-toss-gray-600">표결 집계가 있는 안건만</span>
         </label>
         <label
           class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full px-3.5 py-2 card-shadow transition-colors"
           :class="dissentOnly ? 'bg-toss-red text-white' : 'bg-card text-toss-gray-600'"
         >
-          <input
-            v-model="dissentOnly"
-            type="checkbox"
-            class="size-4 rounded accent-toss-red"
-          />
+          <input v-model="dissentOnly" type="checkbox" class="size-4 rounded accent-toss-red" />
           <span class="text-[13px] font-semibold">반대표 있는 표결만</span>
         </label>
       </div>
     </div>
 
-    <p v-if="searching" class="mb-3 text-[13px] text-toss-gray-500">
-      검색 결과 <b class="text-toss-gray-900">{{ data?.rows?.length ?? 0 }}</b>건
+    <p class="mb-3 text-[13px] text-toss-gray-500">
+      <b class="text-toss-gray-900">{{ filtered.length }}</b>건
       <span class="text-toss-gray-400">· 최근 300건 범위</span>
     </p>
 
-    <DataState
-      :pending="pending"
-      :error="error"
-      :empty="!data?.rows?.length"
-      :skeleton-rows="8"
-    >
+    <DataState :pending="pending" :error="error" :empty="!filtered.length" empty-text="조건에 맞는 표결이 없습니다." :skeleton-rows="8">
       <ul class="space-y-2.5">
-        <li v-for="v in data?.rows" :key="v.billId">
+        <li v-for="v in shown" :key="v.billId">
           <NuxtLink
             :to="`/votes/${v.billId}`"
             class="group block rounded-2xl bg-card card-shadow p-4 sm:p-5 transition-all hover:-translate-y-0.5 hover:card-shadow-hover"
@@ -112,19 +85,12 @@ useHead({ title: "본회의 표결 · 의정감시" });
               <div class="min-w-0">
                 <div class="flex items-center gap-2 mb-1.5">
                   <span class="text-[12px] font-semibold text-toss-gray-400">#{{ v.billNo }}</span>
-                  <span
-                    v-if="v.billKind"
-                    class="text-[11px] font-medium text-toss-gray-500 bg-toss-gray-100 rounded px-1.5 py-0.5"
-                    >{{ v.billKind }}</span
-                  >
+                  <span v-if="v.billKind" class="text-[11px] font-medium text-toss-gray-500 bg-toss-gray-100 rounded px-1.5 py-0.5">{{ v.billKind }}</span>
                   <ResultBadge :text="v.procResult" size="sm" />
                 </div>
-                <p class="text-[15px] font-bold text-toss-gray-900 group-hover:text-toss-blue line-clamp-2">
-                  {{ v.billName }}
-                </p>
+                <p class="text-[15px] font-bold text-toss-gray-900 group-hover:text-toss-blue line-clamp-2">{{ v.billName }}</p>
                 <p class="mt-1 text-[12px] text-toss-gray-400">
-                  {{ formatDate(v.procDt) }}
-                  <template v-if="v.committee"> · {{ v.committee }}</template>
+                  {{ formatDate(v.procDt) }}<template v-if="v.committee"> · {{ v.committee }}</template>
                 </p>
               </div>
               <Arrow class="size-5 shrink-0 text-toss-gray-300 group-hover:text-toss-blue" />
@@ -135,21 +101,11 @@ useHead({ title: "본회의 표결 · 의정감시" });
       </ul>
 
       <div v-if="totalPages > 1" class="mt-6 flex items-center justify-center gap-2">
-        <button
-          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
-          :disabled="page <= 1"
-          @click="page--"
-        >
+        <button class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40" :disabled="page <= 1" @click="page--">
           <ChevronLeft class="size-5" />
         </button>
-        <span class="px-4 text-[14px] font-semibold text-toss-gray-700 tabular-nums">
-          {{ page }} / {{ totalPages }}
-        </span>
-        <button
-          class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40"
-          :disabled="page >= totalPages"
-          @click="page++"
-        >
+        <span class="px-4 text-[14px] font-semibold text-toss-gray-700 tabular-nums">{{ page }} / {{ totalPages }}</span>
+        <button class="grid place-items-center size-10 rounded-xl bg-card card-shadow text-toss-gray-600 disabled:opacity-40" :disabled="page >= totalPages" @click="page++">
           <ChevronRight class="size-5" />
         </button>
       </div>

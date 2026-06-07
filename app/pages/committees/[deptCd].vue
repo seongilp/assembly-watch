@@ -112,10 +112,12 @@ useHead({ title: () => `${data.value?.committee?.name ?? "위원회"} · 의정�
                 <p class="text-[12px] text-toss-gray-400">{{ formatDate(m.date) }}</p>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
+                <a v-if="m.summary" :href="m.summary" target="_blank" class="inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2.5 py-1.5 text-[12px] font-bold text-toss-gray-600 hover:bg-toss-gray-200">
+                  <FileText class="size-3.5" /> 요약
+                </a>
                 <a v-if="m.pdf" :href="m.pdf" target="_blank" class="inline-flex items-center gap-1 rounded-lg bg-toss-blue-light px-2.5 py-1.5 text-[12px] font-bold text-toss-blue-dark hover:opacity-80">
                   <Download class="size-3.5" /> PDF
                 </a>
-                <a v-if="m.link" :href="m.link" target="_blank" class="grid place-items-center size-8 rounded-lg hover:bg-toss-gray-100 text-toss-gray-400"><ExternalLink class="size-4" /></a>
               </div>
             </li>
           </ul>
