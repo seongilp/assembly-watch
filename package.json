@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "gen:data": "node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-bills.mjs && node scripts/gen-insights.mjs && node scripts/gen-avatars.mjs",
+    "gen:data": "node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-bills.mjs && node scripts/gen-insights.mjs && node scripts/gen-districts.mjs && node scripts/gen-avatars.mjs",
     "build": "rm -rf .output .nuxt/cache node_modules/.cache && npm run gen:data && nuxt build",
     "dev": "nuxt dev --port 4191",
     "generate": "nuxt generate",

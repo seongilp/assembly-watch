@@ -6,6 +6,29 @@ import { normalizeParty, partyColor } from "~/lib/party";
 const props = defineProps<{ members: MemberListItem[] }>();
 const partyClr = usePartyColor();
 
+// 선거구 좌표(빌드 베이크) — 지도 확대 시 의원 얼굴 마커용
+const { data: coords } = useFetch<Record<string, [number, number]>>(
+  "/api/districts",
+  { key: "districts", lazy: true },
+);
+const memberPts = computed(() =>
+  props.members
+    .map((m) => {
+      const c = coords.value?.[m.id];
+      return c
+        ? {
+            id: m.id,
+            name: m.name,
+            party: normalizeParty(m.party),
+            color: partyColor(m.party),
+            lat: c[0],
+            lng: c[1],
+          }
+        : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => !!x),
+);
+
 interface RegionStat {
   region: string;
   total: number;
@@ -88,8 +111,10 @@ const mapRegions = computed(() =>
     <ClientOnly v-if="mode === 'map'">
       <KakaoMemberMap
         :regions="mapRegions"
+        :members="memberPts"
         :selected="selected"
         @select="(r) => (selected = selected === r ? null : r)"
+        @member="(id) => navigateTo(`/members/${id}`)"
         @error="mode = 'tile'"
       />
       <template #fallback>

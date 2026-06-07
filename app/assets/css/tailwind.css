@@ -141,7 +141,7 @@
   html {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    scroll-behavior: smooth;
+    /* 라우트 이동 시 top 까지 스르륵 올라가 느려 보여 전역 smooth 제거(즉시 점프) */
   }
   body {
     background-color: var(--toss-gray-50);
