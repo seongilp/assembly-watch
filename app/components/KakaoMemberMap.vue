@@ -34,14 +34,62 @@ const status = ref<"loading" | "ready" | "error">("loading");
 let kakao: any = null;
 let map: any = null;
 let overlays: any[] = [];
+let polygons: any[] = [];
 const focusedId = ref<string | null>(null);
 
-const FACE_LEVEL = 12; // 이보다 확대되고(작은 level) 화면이 붐비지 않으면 얼굴 마커
-const MAX_FACES = 90; // 화면에 이보다 많으면 버블로(과밀 방지)
+type Shapes = {
+  codes: Record<string, { name: string; rings: [number, number][][] }>;
+  members: Record<string, string[]>;
+};
+let shapes: Shapes | null = null;
+let shapesLoading: Promise<void> | null = null;
+
+const FACE_LEVEL = 12; // 이보다 확대되면(작은 level) 얼굴 마커 후보
 
 function clearOverlays() {
   overlays.forEach((o) => o.setMap(null));
   overlays = [];
+}
+function clearPolygons() {
+  polygons.forEach((p) => p.setMap(null));
+  polygons = [];
+}
+
+async function loadShapes() {
+  if (shapes || shapesLoading) return shapesLoading;
+  shapesLoading = $fetch<Shapes>("/api/shapes")
+    .then((d) => {
+      shapes = d;
+    })
+    .catch(() => {});
+  return shapesLoading;
+}
+
+// 클릭한 의원의 선거구(시군구) 경계 폴리곤 오버레이
+function drawPolygons(id: string) {
+  clearPolygons();
+  if (!shapes) return;
+  const codes = shapes.members[id];
+  if (!codes) return;
+  const m = props.members.find((x) => x.id === id);
+  const color = m?.color ?? "#3182F6";
+  for (const code of codes) {
+    const shp = shapes.codes[code];
+    if (!shp) continue;
+    for (const ring of shp.rings) {
+      const path = ring.map(([lng, lat]) => new kakao.maps.LatLng(lat, lng));
+      const poly = new kakao.maps.Polygon({
+        path,
+        strokeWeight: 2,
+        strokeColor: color,
+        strokeOpacity: 0.9,
+        fillColor: color,
+        fillOpacity: 0.18,
+      });
+      poly.setMap(map);
+      polygons.push(poly);
+    }
+  }
 }
 
 // ── 시도 버블 ──────────────────────────────
@@ -199,10 +247,12 @@ function renderMarkers(nodes: any[]) {
     const el = document.createElement("div");
     el.style.cssText = `transform:translate(${Math.round(n.ox)}px, ${Math.round(n.oy)}px);`;
     el.innerHTML = faceHtml(n.m, isF);
-    el.addEventListener("click", () => {
+    el.addEventListener("click", async () => {
       focusedId.value = n.m.id;
       emit("select", n.m.region);
       render();
+      await loadShapes();
+      if (focusedId.value === n.m.id) drawPolygons(n.m.id);
     });
     add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
   }
@@ -218,10 +268,15 @@ function renderMarkers(nodes: any[]) {
 function render() {
   if (!kakao || !map) return;
   clearOverlays();
+  clearPolygons();
   const level = map.getLevel();
+  // 줌인(<=10)이면 인원 많아도 얼굴(declutter로 분산), 11~12는 과밀 시 버블
   const pts = level <= FACE_LEVEL ? membersInView() : [];
-  if (pts.length && pts.length <= MAX_FACES) renderMarkers(pts);
-  else renderBubbles();
+  const cap = level <= 10 ? 400 : 120;
+  if (pts.length && pts.length <= cap) {
+    renderMarkers(pts);
+    if (focusedId.value && shapes) drawPolygons(focusedId.value); // 줌/이동 후에도 유지
+  } else renderBubbles();
 }
 
 onMounted(async () => {
@@ -244,7 +299,10 @@ onMounted(async () => {
 });
 
 watch(() => [props.regions, props.members, props.selected], render, { deep: true });
-onBeforeUnmount(clearOverlays);
+onBeforeUnmount(() => {
+  clearOverlays();
+  clearPolygons();
+});
 </script>
 
 <template>
