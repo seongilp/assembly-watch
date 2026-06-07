@@ -3,8 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "prebuild:data": "node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-insights.mjs",
-    "build": "rm -rf .output .nuxt/cache node_modules/.cache/nitro && node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-insights.mjs && nuxt build",
+    "gen:data": "node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-bills.mjs && node scripts/gen-insights.mjs",
+    "build": "rm -rf .output .nuxt/cache node_modules/.cache/nitro && npm run gen:data && nuxt build",
     "dev": "nuxt dev --port 4191",
     "generate": "nuxt generate",
     "preview": "wrangler dev",
