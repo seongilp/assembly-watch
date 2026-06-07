@@ -10,10 +10,11 @@ import { formatDate } from "~/lib/format";
 
 const page = ref(1);
 const votedOnly = ref(true);
+const dissentOnly = ref(false);
 const search = ref("");
 const size = 20;
 
-watch(votedOnly, () => (page.value = 1));
+watch([votedOnly, dissentOnly], () => (page.value = 1));
 
 const debounced = useDebounceFn(() => {
   page.value = 1;
@@ -24,11 +25,14 @@ const { data, pending, error } = await useFetch<Paged<VoteSummary>>("/api/votes"
     page,
     size,
     votedOnly: computed(() => (votedOnly.value ? 1 : 0)),
+    dissent: computed(() => (dissentOnly.value ? 1 : 0)),
     q: search,
   },
 });
 
-const searching = computed(() => search.value.trim().length > 0);
+const searching = computed(
+  () => search.value.trim().length > 0 || dissentOnly.value,
+);
 const totalPages = computed(() =>
   searching.value
     ? 1
@@ -60,18 +64,31 @@ useHead({ title: "본회의 표결 · 의정감시" });
         />
       </div>
 
-      <label
-        class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-card px-3.5 py-2 card-shadow"
-      >
-        <input
-          v-model="votedOnly"
-          type="checkbox"
-          class="size-4 rounded accent-toss-blue"
-        />
-        <span class="text-[13px] font-semibold text-toss-gray-600"
-          >표결 집계가 있는 안건만</span
+      <div class="flex flex-wrap gap-2">
+        <label
+          class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full bg-card px-3.5 py-2 card-shadow"
         >
-      </label>
+          <input
+            v-model="votedOnly"
+            type="checkbox"
+            class="size-4 rounded accent-toss-blue"
+          />
+          <span class="text-[13px] font-semibold text-toss-gray-600"
+            >표결 집계가 있는 안건만</span
+          >
+        </label>
+        <label
+          class="inline-flex items-center gap-2 cursor-pointer select-none rounded-full px-3.5 py-2 card-shadow transition-colors"
+          :class="dissentOnly ? 'bg-toss-red text-white' : 'bg-card text-toss-gray-600'"
+        >
+          <input
+            v-model="dissentOnly"
+            type="checkbox"
+            class="size-4 rounded accent-toss-red"
+          />
+          <span class="text-[13px] font-semibold">반대표 있는 표결만</span>
+        </label>
+      </div>
     </div>
 
     <p v-if="searching" class="mb-3 text-[13px] text-toss-gray-500">

@@ -23,19 +23,19 @@ const sorted = computed(() => [...props.data].sort((a, b) => b.count - a.count))
       />
     </div>
 
-    <ul class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+    <ul class="mt-4 space-y-1">
       <li
         v-for="d in sorted"
         :key="d.party"
-        class="flex items-center gap-2 min-w-0"
+        class="flex items-center gap-2.5 py-1.5 border-b border-toss-gray-100 last:border-0"
       >
         <span
           class="size-2.5 shrink-0 rounded-full"
           :style="{ backgroundColor: partyColor(d.party) }"
         />
-        <span class="text-[13px] text-toss-gray-600 truncate">{{ d.party }}</span>
-        <span class="ml-auto text-[13px] font-bold text-toss-gray-900 tabular-nums">
-          {{ formatNumber(d.count) }}
+        <span class="text-[13.5px] text-toss-gray-700">{{ d.party }}</span>
+        <span class="ml-auto text-[13.5px] font-bold text-toss-gray-900 tabular-nums">
+          {{ formatNumber(d.count) }}<span class="text-toss-gray-400 font-medium">석</span>
         </span>
       </li>
     </ul>
