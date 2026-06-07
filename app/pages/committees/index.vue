@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Landmark, Users } from "lucide-vue-next";
+import { Landmark, Users, ChevronRight } from "lucide-vue-next";
 import type { Committee } from "#shared/types";
 
 const { data, pending, error } = await useFetch<{
@@ -42,24 +42,21 @@ useHead({ title: "위원회 · 의정감시" });
           <span class="text-[12px] font-semibold text-toss-gray-400">{{ list.length }}</span>
         </h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          <div
+          <NuxtLink
             v-for="(c, i) in list"
             :key="c.name + i"
-            class="flex items-center justify-between gap-3 rounded-2xl bg-card p-4 card-shadow"
+            :to="c.deptCd ? `/committees/${c.deptCd}` : undefined"
+            class="group flex items-center justify-between gap-3 rounded-2xl bg-card p-4 card-shadow transition-all"
+            :class="c.deptCd ? 'hover:-translate-y-0.5 hover:card-shadow-hover' : ''"
           >
             <div class="min-w-0">
-              <p class="text-[15px] font-bold text-toss-gray-900 truncate">{{ c.name }}</p>
+              <p class="text-[15px] font-bold text-toss-gray-900 truncate group-hover:text-toss-blue">{{ c.name }}</p>
               <p v-if="c.limit" class="mt-0.5 inline-flex items-center gap-1 text-[12px] text-toss-gray-500">
                 <Users class="size-3.5" /> 정원 {{ c.limit }}명
               </p>
             </div>
-            <div
-              v-if="c.limit"
-              class="grid place-items-center size-11 shrink-0 rounded-xl bg-toss-blue-light text-toss-blue-dark font-extrabold text-[16px] tabular-nums"
-            >
-              {{ c.limit }}
-            </div>
-          </div>
+            <ChevronRight v-if="c.deptCd" class="size-5 shrink-0 text-toss-gray-300 group-hover:text-toss-blue" />
+          </NuxtLink>
         </div>
       </div>
     </DataState>

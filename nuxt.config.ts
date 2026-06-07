@@ -27,6 +27,19 @@ function voteRoutes(): string[] {
   }
 }
 
+// 위원회 상세 전부 프리렌더
+function committeeRoutes(): string[] {
+  try {
+    const p = "./server/assets/committees.json";
+    if (!existsSync(p)) return [];
+    return (JSON.parse(readFileSync(p, "utf8")) as { deptCd: string }[])
+      .filter((c) => c.deptCd)
+      .map((c) => `/committees/${c.deptCd}`);
+  } catch {
+    return [];
+  }
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -59,6 +72,23 @@ export default defineNuxtConfig({
           content:
             "대한민국 국회 열린국회정보 Open API 기반 의정활동 감시 대시보드 — 의원, 의안, 본회의 표결, 위원회, 국회 일정을 한눈에.",
         },
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "의정감시" },
+        { property: "og:title", content: "의정감시 · 국회 의정활동 모니터" },
+        {
+          property: "og:description",
+          content:
+            "제22대 국회 — 의원·의안·본회의 표결·위원회·펀팩트를 한눈에. 열린국회정보 공식 데이터.",
+        },
+        { property: "og:image", content: "https://asm.zihado.com/og.png" },
+        { property: "og:url", content: "https://asm.zihado.com" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: "의정감시 · 국회 의정활동 모니터" },
+        {
+          name: "twitter:description",
+          content: "제22대 국회 의정활동을 한눈에 — 표결·의안·펀팩트",
+        },
+        { name: "twitter:image", content: "https://asm.zihado.com/og.png" },
       ],
       link: [
         {
@@ -90,7 +120,12 @@ export default defineNuxtConfig({
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
     prerender: {
       crawlLinks: false,
-      routes: [...memberRoutes(), ...voteRoutes()],
+      routes: [
+        "/sitemap.xml",
+        ...memberRoutes(),
+        ...voteRoutes(),
+        ...committeeRoutes(),
+      ],
     },
   },
 
@@ -110,6 +145,7 @@ export default defineNuxtConfig({
       // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시
       "/members/**": { swr: 3600 },
       "/votes/**": { swr: 3600 },
+      "/committees/**": { swr: 3600 },
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },

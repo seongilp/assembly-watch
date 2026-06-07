@@ -93,6 +93,28 @@ export interface ScheduleItem {
   confDiv: string; // CONF_DIV
 }
 
+export interface CommitteeMeeting {
+  date: string; // MEETING_DATE
+  time: string; // MEETING_TIME
+  title: string; // TITLE (전체회의/소위 등)
+  sess: string; // SESS (회기)
+  agenda: string[]; // ANGUN (안건 목록)
+  link: string; // LINK_URL2
+}
+
+export interface CommitteeMinute {
+  title: string; // TITLE
+  date: string; // CONF_DATE
+  pdf: string; // PDF_LINK_URL
+  link: string; // CONF_LINK_URL
+}
+
+export interface CommitteeDetail {
+  committee: { deptCd: string; name: string; div: string; limit: number | null } | null;
+  schedule: CommitteeMeeting[];
+  minutes: CommitteeMinute[];
+}
+
 export interface Paged<T> {
   rows: T[];
   totalCount: number;

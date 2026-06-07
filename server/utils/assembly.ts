@@ -27,6 +27,10 @@ export const API = {
   VOTES_ROLLCALL: "nojepdqqaweusdfbi",
   /** 위원회 현황 (AGE 불필요) */
   COMMITTEES: "nxrvzonlafugpqjuh",
+  /** 위원회별 일정 (UNIT_CD + HR_DEPT_CD) */
+  COMMITTEE_SCHEDULE: "nrsldhjpaemrmolla",
+  /** 위원회 회의록 (DAE_NUM + CONF_DATE + COMM_NAME, PDF/원문 링크 포함) */
+  COMMITTEE_MINUTES: "ncwgseseafwbuheph",
   /** 국회 일정 통합 (AGE 불필요) */
   SCHEDULE: "ALLSCHEDULE",
 } as const;
