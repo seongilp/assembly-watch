@@ -15,13 +15,15 @@ const props = withDefaults(
   { accent: "blue" },
 );
 
-const accentMap = {
-  blue: { bg: "bg-toss-blue-light", fg: "text-toss-blue" },
-  green: { bg: "bg-[#E3F7F2]", fg: "text-toss-green" },
-  amber: { bg: "bg-[#FFF4E0]", fg: "text-toss-amber" },
-  red: { bg: "bg-[#FDECEE]", fg: "text-toss-red" },
-  violet: { bg: "bg-[#F3ECFE]", fg: "text-[#7C3AED]" },
-} as const;
+// 단일 hex 로 통일 — 라이트/다크 모두 일관 (accent 색 반투명 배경 + accent 색 아이콘)
+const ACCENT: Record<string, string> = {
+  blue: "#3182F6",
+  green: "#00C896",
+  amber: "#FF9500",
+  red: "#F04452",
+  violet: "#7C3AED",
+};
+const accentColor = computed(() => ACCENT[props.accent] ?? ACCENT.blue);
 
 const display = computed(() =>
   typeof props.value === "number" ? formatNumber(props.value) : props.value,
@@ -41,9 +43,9 @@ const tag = computed(() => (props.to ? NuxtLink : "div"));
       <span class="text-[13px] font-semibold text-toss-gray-500">{{ label }}</span>
       <div
         class="grid place-items-center size-9 rounded-xl"
-        :class="accentMap[accent].bg"
+        :style="{ backgroundColor: accentColor + '24', color: accentColor }"
       >
-        <component :is="icon" class="size-[18px]" :class="accentMap[accent].fg" />
+        <component :is="icon" class="size-[18px]" />
       </div>
     </div>
     <div class="mt-3 flex items-baseline gap-1">
