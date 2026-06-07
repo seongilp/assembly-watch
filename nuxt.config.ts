@@ -79,7 +79,6 @@ export default defineNuxtConfig({
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },
-      "/api/member-photos": { swr: 43200 },
       "/api/members/**": { swr: 3600 },
       "/api/committees": { swr: 21600 },
       "/api/bills": { swr: 600 },

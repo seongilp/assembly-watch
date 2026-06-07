@@ -18,13 +18,31 @@ try {
   const raw = sh(`bunx wrangler kv key list --namespace-id ${NS} --remote`);
   const keys = JSON.parse(raw).map((k) => k.name);
   if (!keys.length) {
-    console.log("[purge-kv] 비울 캐시 없음");
-    process.exit(0);
+    console.log("[purge-kv] 비울 KV 캐시 없음");
+  } else {
+    writeFileSync(TMP, JSON.stringify(keys));
+    sh(`bunx wrangler kv bulk delete ${TMP} --namespace-id ${NS} --remote --force`);
+    rmSync(TMP, { force: true });
+    console.log(`[purge-kv] KV ${keys.length}개 키 퍼지 완료`);
   }
-  writeFileSync(TMP, JSON.stringify(keys));
-  sh(`bunx wrangler kv bulk delete ${TMP} --namespace-id ${NS} --remote --force`);
-  rmSync(TMP, { force: true });
-  console.log(`[purge-kv] ${keys.length}개 캐시 키 퍼지 완료`);
 } catch (e) {
-  console.warn("[purge-kv] 퍼지 실패(무시하고 진행):", e.message?.slice(0, 200));
+  console.warn("[purge-kv] KV 퍼지 실패(무시):", e.message?.slice(0, 160));
+}
+
+// CF 엣지 캐시 퍼지 (cache rule 로 엣지 캐시 중 → 재배포 stale HTML 방지)
+// 토큰/존ID 는 env 로만 주입 (절대 커밋 금지)
+const CF_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+const CF_ZONE = process.env.CF_ZONE_ID;
+if (CF_TOKEN && CF_ZONE) {
+  try {
+    const res = sh(
+      `curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" --data '{"purge_everything":true}'`,
+    );
+    const ok = JSON.parse(res).success;
+    console.log(`[purge-kv] CF 엣지 캐시 퍼지: ${ok ? "성공" : "실패"}`);
+  } catch (e) {
+    console.warn("[purge-kv] CF 퍼지 실패(무시):", e.message?.slice(0, 160));
+  }
+} else {
+  console.log("[purge-kv] CF 엣지 퍼지 건너뜀 (CLOUDFLARE_API_TOKEN/CF_ZONE_ID 미설정)");
 }

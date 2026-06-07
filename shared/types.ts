@@ -23,6 +23,18 @@ export interface Member {
   photo: string; // NAAS_PIC (ALLNAMEMBER 에서 보강)
 }
 
+/** 목록용 경량 의원 (리스트/대시보드/검색 — 페이로드 절감) */
+export interface MemberListItem {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  electType: string;
+  reelection: string;
+  committee: string;
+  photo: string;
+}
+
 export interface Bill {
   id: string; // BILL_ID
   no: string; // BILL_NO

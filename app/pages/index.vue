@@ -8,12 +8,12 @@ import {
   CalendarDays,
   MapPin,
 } from "lucide-vue-next";
-import type { Member, VoteSummary, ScheduleItem } from "#shared/types";
+import type { MemberListItem, VoteSummary, ScheduleItem } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
 import { formatDate, formatNumber, relativeDay } from "~/lib/format";
 
 const { data: stats, pending: statsPending } = useFetch("/api/stats");
-const { data: members } = useFetch<{ rows: Member[] }>("/api/members");
+const { data: members } = useFetch<{ rows: MemberListItem[] }>("/api/members");
 const { data: votes, pending: votesPending } = useFetch<{ rows: VoteSummary[] }>(
   "/api/votes",
   { query: { size: 6, votedOnly: 1 } },

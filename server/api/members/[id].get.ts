@@ -1,5 +1,8 @@
 import type { Bill, MemberVote, MemberDetail } from "#shared/types";
 import type { RollCallResponse } from "../votes/[billId].get";
+import photos from "../../assets/member-photos.json";
+
+const PHOTOS = photos as Record<string, string>;
 
 /**
  * 의원 상세 통합: 인적사항 + 대표발의 법안 + 최근 본회의 표결 이력
@@ -21,10 +24,7 @@ export default defineCachedEventHandler(
     const mRes = await fetchAssembly(API.MEMBERS, { pSize: 350 });
     const member = mRes.rows.map(mapMember).find((m) => m.id === id);
     if (!member) return empty;
-    const photos = await $fetch<Record<string, string>>(
-      "/api/member-photos",
-    ).catch(() => ({}));
-    member.photo = photos[member.id] ?? "";
+    member.photo = PHOTOS[member.id] ?? "";
 
     // 2) 대표발의 법안 + 최근 표결 이력 병렬 조립
     const [bills, votes] = await Promise.all([

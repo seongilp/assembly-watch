@@ -10,16 +10,17 @@ import {
 import { NAV_ITEMS } from "~/lib/nav";
 import { partyColor, normalizeParty } from "~/lib/party";
 import { Moon, Sun } from "lucide-vue-next";
-import type { Member } from "#shared/types";
+import type { MemberListItem } from "#shared/types";
 
 const open = useCommandPalette();
 const router = useRouter();
 const colorMode = useNuxtApp().$colorMode;
 
 // 의원 목록은 클라이언트에서만 lazy 로드 (팔레트 검색용)
-const { data: members } = useLazyFetch<{ rows: Member[] }>("/api/members", {
-  server: false,
-});
+const { data: members } = useLazyFetch<{ rows: MemberListItem[] }>(
+  "/api/members",
+  { server: false },
+);
 
 onMounted(() => {
   useEventListener(window, "keydown", (e: KeyboardEvent) => {
