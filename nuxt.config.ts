@@ -14,6 +14,19 @@ function memberRoutes(): string[] {
   }
 }
 
+// 최근 표결 60건 상세도 프리렌더 (자주 클릭되는 경로)
+function voteRoutes(): string[] {
+  try {
+    const p = "./server/assets/voted-bills.json";
+    if (!existsSync(p)) return [];
+    return (JSON.parse(readFileSync(p, "utf8")) as string[]).map(
+      (id) => `/votes/${id}`,
+    );
+  } catch {
+    return [];
+  }
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -77,7 +90,7 @@ export default defineNuxtConfig({
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
     prerender: {
       crawlLinks: false,
-      routes: memberRoutes(),
+      routes: [...memberRoutes(), ...voteRoutes()],
     },
   },
 
@@ -92,11 +105,11 @@ export default defineNuxtConfig({
       "/bills": { prerender: true },
       "/votes": { prerender: true },
       "/insights": { prerender: true },
-      // 나머지 페이지: SSR HTML 을 엣지 SWR 캐시
-      "/": { swr: 600 },
+      "/": { prerender: true },
+      "/schedule": { prerender: true },
+      // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시
       "/members/**": { swr: 3600 },
       "/votes/**": { swr: 3600 },
-      "/schedule": { swr: 1800 },
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },

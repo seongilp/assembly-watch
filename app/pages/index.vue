@@ -31,8 +31,10 @@ const partyDist = computed(() => {
   return [...counts.entries()].map(([party, count]) => ({ party, count }));
 });
 
+// 날짜/상대시간은 클라이언트에서만 계산 → 프리렌더 하이드레이션 안전
+const mounted = useMounted();
 const updatedLabel = computed(() => {
-  if (!stats.value?.updatedAt) return "";
+  if (!mounted.value || !stats.value?.updatedAt) return "";
   return new Date(stats.value.updatedAt).toLocaleString("ko-KR", {
     month: "long",
     day: "numeric",
@@ -192,7 +194,7 @@ const updatedLabel = computed(() => {
               <div class="flex items-center gap-2">
                 <span
                   class="text-[11px] font-bold text-toss-blue bg-toss-blue-light rounded-md px-1.5 py-0.5"
-                  >{{ relativeDay(s.date) || s.kind }}</span
+                  >{{ mounted ? relativeDay(s.date) || s.kind : s.kind }}</span
                 >
                 <span class="text-[12px] text-toss-gray-400">{{
                   formatDate(s.date)

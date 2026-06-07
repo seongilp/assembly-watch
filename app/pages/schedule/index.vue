@@ -4,6 +4,7 @@ import type { ScheduleItem } from "#shared/types";
 import { formatDate, relativeDay } from "~/lib/format";
 
 const upcoming = ref(true);
+const mounted = useMounted(); // 상대시간(D-day)은 클라이언트에서만 → 프리렌더 안전
 
 const { data, pending, error } = await useFetch<{ rows: ScheduleItem[] }>(
   "/api/schedule",
@@ -69,7 +70,7 @@ useHead({ title: "국회 일정 · 의정감시" });
             </div>
             <div>
               <p class="text-[15px] font-extrabold text-toss-gray-900">{{ formatDate(date) }}</p>
-              <p class="text-[12px] font-semibold text-toss-blue">{{ relativeDay(date) }}</p>
+              <p class="text-[12px] font-semibold text-toss-blue">{{ mounted ? relativeDay(date) : "" }}</p>
             </div>
           </div>
 

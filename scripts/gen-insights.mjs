@@ -105,11 +105,16 @@ async function main() {
   }
 
   // 3) 최근 표결안건(집계 있는 것) → 의원별 찬/반/기권/불참 + 의원별 표결이력
-  const votedBills = (await call("nwbpacrgavhjryiph", { AGE: String(AGE), pSize: "80" })).rows
+  const votedBills = (await call("nwbpacrgavhjryiph", { AGE: String(AGE), pSize: "120" })).rows
     .filter((r) => r.VOTE_TCNT != null && r.VOTE_TCNT !== "")
-    .slice(0, 40)
+    .slice(0, 60)
     .map((r) => ({ billId: s(r.BILL_ID), billName: s(r.BILL_NM), procDt: s(r.RGS_PROC_DT), procResult: s(r.PROC_RESULT_CD) }))
     .filter((b) => b.billId);
+  // 표결 상세 프리렌더 대상(최근 60건) 목록 저장
+  writeFileSync(
+    join(root, "server/assets/voted-bills.json"),
+    JSON.stringify(votedBills.map((b) => b.billId)),
+  );
 
   const tally = new Map(); // name -> {yes,no,blank,absent,total}
   const memberVotes = new Map(); // name -> [{billId,billName,date,result,procResult}]
