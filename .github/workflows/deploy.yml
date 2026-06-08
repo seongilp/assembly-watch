@@ -1,14 +1,12 @@
 name: Deploy (Cloudflare)
 
-# main 에 푸시/머지되면 자동으로 데이터 생성 → 빌드 → Cloudflare 배포 → KV 퍼지.
-# 워크플로/문서만 바뀐 푸시는 건너뛴다.
+# ⚠️ 자동 push 트리거 비활성화됨.
+# 이유: 빌드 프리렌더가 열린국회정보 API(open.assembly.go.kr)를 호출하는데
+#       GitHub 러너 IP에서 502/타임아웃이 나서 빌드가 20분+ 무한정 걸림(로컬은 6초).
+#       → CI 자동배포 불가. 현재는 수동 버튼만 유지. 로컬 `npm run deploy` 사용 권장.
+# 해결하려면: (a) self-hosted 러너(내 IP) (b) 베이크된 데이터 커밋 + 프리렌더에서 라이브 API 제거.
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - ".github/**"
-      - "**.md"
-  workflow_dispatch: {} # 수동 배포 버튼(Actions 탭) + 테스트용
+  workflow_dispatch: {} # 수동 배포 버튼(Actions 탭). 현재 CI에선 API 차단으로 실패할 수 있음.
 
 # 동시에 한 번만 배포(이전 배포 진행 중이면 취소하고 최신으로)
 concurrency:
