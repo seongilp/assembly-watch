@@ -69,6 +69,12 @@ export function procStyle(result: string): { fg: string; bg: string } {
   return { fg: "#1B64DA", bg: "#E8F3FF" };
 }
 
+/** 2글자 이름을 3글자 폭에 맞춰 정렬 — 뒤에 전각 공백(U+3000) 1칸을 끼워 명단 열을 균일하게 */
+export function padName(name: string | null | undefined): string {
+  if (!name) return "";
+  return name.length === 2 ? `${name}　` : name;
+}
+
 /** 발의자 문자열에서 대표발의자 이름만 추출: "홍길동의원 등 10인" → "홍길동" */
 export function leadProposer(proposer: string): string {
   if (!proposer) return "";

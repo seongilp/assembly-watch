@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, Users } from "lucide-vue-next";
 import type { Bill, BillProposers, MemberListItem } from "#shared/types";
-import { formatDate } from "~/lib/format";
+import { formatDate, padName } from "~/lib/format";
 
 const route = useRoute();
 const router = useRouter();
@@ -168,7 +168,7 @@ useHead({ title: "의안 · 의정감시" });
                     :photo="memberByName.get(nm)!.photo"
                     :size="22"
                   />
-                  {{ nm }}
+                  <span class="whitespace-pre">{{ padName(nm) }}</span>
                 </component>
               </div>
             </template>

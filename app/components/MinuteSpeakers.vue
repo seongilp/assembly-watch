@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { MemberListItem } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
+import { padName } from "~/lib/format";
 
 const props = defineProps<{ speakers: string[] }>();
 const partyClr = usePartyColor();
@@ -71,7 +72,7 @@ const groups = computed(() => {
             :size="22"
           />
           <span v-else class="grid place-items-center size-[22px] rounded-full bg-toss-gray-300 text-[10px] font-bold text-white">{{ s.name.slice(0, 1) }}</span>
-          <span class="text-[12px] font-semibold text-toss-gray-700">{{ s.name }}</span>
+          <span class="whitespace-pre text-[12px] font-semibold text-toss-gray-700">{{ padName(s.name) }}</span>
         </component>
       </div>
     </div>

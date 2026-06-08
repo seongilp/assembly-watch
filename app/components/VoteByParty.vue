@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { VoteRecord } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
-import { voteStyle } from "~/lib/format";
+import { voteStyle, padName } from "~/lib/format";
 
 const props = defineProps<{ records: VoteRecord[] }>();
 const partyColor = usePartyColor();
@@ -130,7 +130,7 @@ const toggle = (p: string) => {
               :class="m.id ? 'hover:bg-toss-gray-200 transition-colors' : ''"
             >
               <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="20" />
-              {{ m.name }}
+              <span class="whitespace-pre">{{ padName(m.name) }}</span>
             </component>
           </div>
         </div>
