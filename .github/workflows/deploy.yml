@@ -8,6 +8,7 @@ on:
     paths-ignore:
       - ".github/**"
       - "**.md"
+  workflow_dispatch: {} # 수동 배포 버튼(Actions 탭) + 테스트용
 
 # 동시에 한 번만 배포(이전 배포 진행 중이면 취소하고 최신으로)
 concurrency:
