@@ -1,0 +1,100 @@
+name: Telegram 알림
+
+# 이슈/PR/배포 이벤트가 생기면 텔레그램으로 알림.
+# 사용자 입력(제목 등)은 ${{ }} 인라인 보간 대신 env 변수로 주입해 셸 인젝션을 막는다.
+on:
+  issues:
+    types: [opened, closed, reopened, labeled]
+  pull_request:
+    types: [opened, closed, reopened]
+  workflow_run:
+    workflows: ["Deploy (Cloudflare)"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 메시지 구성 + 전송
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          # issue
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          LABEL: ${{ github.event.label.name }}
+          # pull request
+          PR_NUM: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_USER: ${{ github.event.pull_request.user.login }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          # deploy (workflow_run)
+          WR_CONCL: ${{ github.event.workflow_run.conclusion }}
+          WR_URL: ${{ github.event.workflow_run.html_url }}
+          WR_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          MSG=""
+          case "$EVENT" in
+            issues)
+              case "$ACTION" in
+                opened)   MSG="🆕 이슈 #${ISSUE_NUM} 등록
+          ${ISSUE_TITLE}
+          by ${ISSUE_USER}
+          ${ISSUE_URL}" ;;
+                closed)   MSG="✅ 이슈 #${ISSUE_NUM} 닫힘
+          ${ISSUE_TITLE}" ;;
+                reopened) MSG="♻️ 이슈 #${ISSUE_NUM} 재오픈
+          ${ISSUE_TITLE}" ;;
+                labeled)
+                  if [ "$LABEL" = "claude" ]; then
+                    MSG="🏷️ 이슈 #${ISSUE_NUM} → claude 라벨 (패치 봇 시작)
+          ${ISSUE_TITLE}
+          ${ISSUE_URL}"
+                  fi ;;
+              esac ;;
+            pull_request)
+              case "$ACTION" in
+                opened)   MSG="🔧 PR #${PR_NUM} 생성
+          ${PR_TITLE}
+          by ${PR_USER}
+          ${PR_URL}" ;;
+                reopened) MSG="♻️ PR #${PR_NUM} 재오픈
+          ${PR_TITLE}" ;;
+                closed)
+                  if [ "$PR_MERGED" = "true" ]; then
+                    MSG="🎉 PR #${PR_NUM} 머지됨
+          ${PR_TITLE}
+          ${PR_URL}"
+                  else
+                    MSG="🚫 PR #${PR_NUM} 닫힘 (머지 안 함)
+          ${PR_TITLE}"
+                  fi ;;
+              esac ;;
+            workflow_run)
+              if [ "$WR_CONCL" = "success" ]; then
+                MSG="🚀 배포 성공 (${WR_BRANCH})
+          ${WR_URL}"
+              else
+                MSG="❌ 배포 실패: ${WR_CONCL}
+          ${WR_URL}"
+              fi ;;
+          esac
+
+          if [ -z "$MSG" ]; then
+            echo "알림 대상 아님 ($EVENT/$ACTION) — 스킵"
+            exit 0
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${MSG}" \
+            -d disable_web_page_preview=true > /dev/null
+          echo "전송 완료"
