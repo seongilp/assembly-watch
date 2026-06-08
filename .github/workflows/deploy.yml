@@ -1,0 +1,50 @@
+name: Deploy (Cloudflare)
+
+# main 에 푸시/머지되면 자동으로 데이터 생성 → 빌드 → Cloudflare 배포 → KV 퍼지.
+# 워크플로/문서만 바뀐 푸시는 건너뛴다.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - "**.md"
+
+# 동시에 한 번만 배포(이전 배포 진행 중이면 취소하고 최신으로)
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 의존성 설치
+        run: npm install
+
+      - name: 데이터 생성 + 빌드
+        env:
+          API_KEY: ${{ secrets.API_KEY }} # 열린국회정보 Open API 키 (gen:data)
+          KAKAO_MAP_KEY: ${{ secrets.KAKAO_MAP_KEY }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+        run: npm run build # = gen:data + nuxt build
+
+      - name: 배포 + 캐시 퍼지
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+        run: |
+          bunx wrangler deploy
+          node scripts/purge-kv.mjs
