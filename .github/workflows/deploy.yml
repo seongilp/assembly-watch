@@ -1,14 +1,16 @@
 name: Deploy (Cloudflare)
 
-# ⚠️ 자동 push 트리거 비활성화됨.
-# 이유: 빌드 프리렌더가 열린국회정보 API(open.assembly.go.kr)를 호출하는데
-#       GitHub 러너 IP에서 502/타임아웃이 나서 빌드가 20분+ 무한정 걸림(로컬은 6초).
-#       → CI 자동배포 불가. 현재는 수동 버튼만 유지. 로컬 `npm run deploy` 사용 권장.
-# 해결하려면: (a) self-hosted 러너(내 IP) (b) 베이크된 데이터 커밋 + 프리렌더에서 라이브 API 제거.
+# main 에 머지/푸시되면 자동 배포. 데이터는 git 에 베이크돼 있어(gen:data 안 함)
+# 빌드가 라이브 API 를 안 쳐서 CI 에서 빠르게 끝난다.
+# 데이터 새로고침은 로컬에서 `pnpm gen:data` 후 server/assets 커밋.
 on:
-  workflow_dispatch: {} # 수동 배포 버튼(Actions 탭). 현재 CI에선 API 차단으로 실패할 수 있음.
+  push:
+    branches: [main]
+    paths-ignore:
+      - ".github/**"
+      - "**.md"
+  workflow_dispatch: {} # 수동 배포 버튼
 
-# 동시에 한 번만 배포(이전 배포 진행 중이면 취소하고 최신으로)
 concurrency:
   group: deploy-main
   cancel-in-progress: true
@@ -22,22 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: 의존성 설치
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
-      - name: 데이터 생성 + 빌드
-        env:
-          API_KEY: ${{ secrets.API_KEY }} # 열린국회정보 Open API 키 (gen:data)
-          KAKAO_MAP_KEY: ${{ secrets.KAKAO_MAP_KEY }}
-          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
-        run: npm run build # = gen:data + nuxt build
+      - name: 빌드 (베이크된 데이터 사용, gen:data 안 함)
+        run: pnpm build:baked
 
       - name: 배포 + 캐시 퍼지
         env:

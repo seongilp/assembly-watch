@@ -1,12 +1,16 @@
-import type { Bill, MemberVote, MemberDetail } from "#shared/types";
+import type { Bill, Member, MemberVote, MemberDetail } from "#shared/types";
 import photos from "../../assets/member-photos.json";
 import details from "../../assets/member-details.json";
+import members from "../../assets/members.json";
 
 const PHOTOS = photos as Record<string, string>;
 const DETAILS = details as Record<
   string,
   { bills: Bill[]; votes: MemberVote[]; votesScanned: number }
 >;
+// 베이크된 의원 인적사항(라이브 API 대체) — id → Member
+const MEMBERS_BY_ID: Record<string, Omit<Member, "photo">> = {};
+for (const m of members as Omit<Member, "photo">[]) MEMBERS_BY_ID[m.id] = m;
 
 /**
  * 의원 상세 통합: 인적사항 + 대표발의 법안 + 최근 본회의 표결 이력
@@ -24,10 +28,9 @@ export default defineCachedEventHandler(
     };
     if (!id) return empty;
 
-    const mRes = await fetchAssembly(API.MEMBERS, { pSize: 350 });
-    const member = mRes.rows.map(mapMember).find((m) => m.id === id);
-    if (!member) return empty;
-    member.photo = PHOTOS[member.id] ?? "";
+    const base = MEMBERS_BY_ID[id];
+    if (!base) return empty;
+    const member: Member = { ...base, photo: PHOTOS[id] ?? "" };
 
     const d = DETAILS[id] ?? { bills: [], votes: [], votesScanned: 0 };
     return {

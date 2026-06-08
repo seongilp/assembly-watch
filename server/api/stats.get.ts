@@ -1,20 +1,8 @@
-/** 대시보드 핵심 통계 (캐시 30분) */
-export default defineCachedEventHandler(
-  async () => {
-    const [members, pending, processed, votes] = await Promise.all([
-      fetchAssembly(API.MEMBERS, { pSize: 1 }),
-      fetchAssembly(API.BILLS_PENDING, { pSize: 1 }),
-      fetchAssembly(API.BILLS_PROCESSED, { pSize: 1, AGE }),
-      fetchAssembly(API.VOTES_PLENARY, { pSize: 1, AGE }),
-    ]);
-    return {
-      age: AGE,
-      members: members.totalCount,
-      billsPending: pending.totalCount,
-      billsProcessed: processed.totalCount,
-      votes: votes.totalCount,
-      updatedAt: new Date().toISOString(),
-    };
-  },
-  { maxAge: 60 * 30, name: "stats", getKey: () => "all" },
-);
+import stats from "../assets/stats.json";
+
+/** 대시보드 핵심 통계 — 베이크된 스냅샷(빌드 시점, 라이브 API 없음) */
+export default defineCachedEventHandler(async () => stats, {
+  maxAge: 60 * 30,
+  name: "stats",
+  getKey: () => "all",
+});

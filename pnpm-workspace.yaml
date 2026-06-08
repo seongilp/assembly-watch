@@ -1,0 +1,5 @@
+# pnpm 11 설정. 네이티브 빌드가 필요한 의존성만 빌드 스크립트 허용(보안 기본 차단 해제).
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  vue-demi: true

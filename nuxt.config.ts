@@ -26,19 +26,6 @@ function voteRoutes(): string[] {
   }
 }
 
-// 위원회 상세 전부 프리렌더
-function committeeRoutes(): string[] {
-  try {
-    const p = "./server/assets/committees.json";
-    if (!existsSync(p)) return [];
-    return (JSON.parse(readFileSync(p, "utf8")) as { deptCd: string }[])
-      .filter((c) => c.deptCd)
-      .map((c) => `/committees/${c.deptCd}`);
-  } catch {
-    return [];
-  }
-}
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -123,7 +110,8 @@ export default defineNuxtConfig({
         "/sitemap.xml",
         ...memberRoutes(),
         ...voteRoutes(),
-        ...committeeRoutes(),
+        // 위원회 상세(157개)는 일정·회의록이 동적(라이브 API)이라 프리렌더 제외 →
+        // 런타임 SSR(routeRules /committees/** swr). 핵심정보는 committees.json 베이크.
       ],
     },
   },
