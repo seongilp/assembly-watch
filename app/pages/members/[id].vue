@@ -18,8 +18,9 @@ import { formatDate, voteStyle } from "~/lib/format";
 const route = useRoute();
 const id = computed(() => String(route.params.id));
 
-// 불참왕/기권왕/발의왕 칭호 (펀팩트 1위와 일치 시) — member-detail await 보다 먼저 호출(SSR 컨텍스트 보존)
+// 칭호 (펀팩트 1위와 일치 시) — member-detail await 보다 먼저 호출(SSR 컨텍스트 보존)
 const { data: insights } = await useFetch<Insights>("/api/insights", { key: "insights" });
+const { data: vinsights } = await useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
 
 // 단일 엔드포인트로 member + bills + votes 통합 조회 (하이드레이션 일관성)
 // 정적 URL + 명시적 key 로 SSR↔CSR payload 매칭 보장
@@ -34,6 +35,7 @@ const titles = computed(() => {
   const t: string[] = [];
   const a = insights.value;
   if (a?.proposed?.[0]?.id === id.value) t.push("발의왕");
+  if (vinsights.value?.rebel?.[0]?.id === id.value) t.push("소신왕");
   if (a?.yes?.[0]?.id === id.value) t.push("찬성왕");
   if (a?.no?.[0]?.id === id.value) t.push("반대왕");
   if (a?.blank?.[0]?.id === id.value) t.push("기권왕");
@@ -271,6 +273,11 @@ const contacts = computed(() => {
           </p>
         </DataState>
       </section>
+
+      <!-- 표결 쌍둥이 (정치적 궁합) -->
+      <ClientOnly>
+        <MemberTwins :member-id="id" />
+      </ClientOnly>
     </template>
 
     <div v-else class="space-y-4">

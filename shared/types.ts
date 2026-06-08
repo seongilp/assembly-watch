@@ -216,6 +216,24 @@ export interface Insights {
   attendanceLow: InsightMember[];
 }
 
+/** 표결 매트릭스 (퀴즈·표결쌍둥이) */
+export interface VoteData {
+  bills: { id: string; no: string; name: string; date: string; procResult: string; committee: string; y: number; n: number; b: number; total: number }[];
+  members: { id: string; name: string; party: string; origin: string; photo: string }[];
+  matrix: Record<string, string>; // id → "YNBA-..." (bills 순서)
+}
+
+/** 표결 파생 통계 */
+export interface VoteInsights {
+  generatedAt: string | null;
+  billCount: number;
+  rebel: InsightMember[]; // 소신(당론 이탈) 최다
+  partyUnity: { party: string; unity: number; bills: number; seats: number }[];
+  close: { id: string; name: string; no: string; date: string; y: number; n: number; b: number }[];
+  unanimous: { count: number; total: number };
+  quiz: { id: string; name: string; no: string }[];
+}
+
 /** 의원 상세 통합 응답 */
 export interface MemberDetail {
   member: Member | null;

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award } from "lucide-vue-next";
-import type { Insights } from "#shared/types";
+import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles } from "lucide-vue-next";
+import type { Insights, VoteInsights } from "#shared/types";
 
 const { data } = await useFetch<Insights>("/api/insights");
+const { data: vi } = await useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
 
 useHead({ title: "펀팩트 · 의정감시" });
 </script>
@@ -78,7 +79,17 @@ useHead({ title: "펀팩트 · 의정감시" });
         accent="#D63A45"
         crown="결석왕"
       />
+      <RankingCard
+        title="소신왕 (당론과 다르게 투표)"
+        :icon="Sparkles"
+        :items="vi?.rebel ?? []"
+        unit="회"
+        accent="#7C3AED"
+        crown="소신왕"
+      />
     </div>
+
+    <VoteExtraPanel v-if="vi" :data="vi" class="mt-4" />
 
     <p class="mt-6 text-center text-[12px] text-toss-gray-400">
       ※ 표결 통계는 최근 본회의 표결을 표본으로 한 참고용 수치입니다. 발의는 대표발의 기준.
