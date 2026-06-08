@@ -12,9 +12,13 @@ const { data, pending, error } = await useFetch<{ rows: ScheduleItem[] }>(
   { query: { upcoming: 0, size: 300 }, key: "schedule-all" },
 );
 
-const todayKey = computed(() =>
-  mounted.value ? new Date().toISOString().slice(0, 10).replace(/-/g, "") : "00000000",
-);
+// 로컬(KST) 기준 YYYYMMDD — relativeDay(로컬)와 일치시켜야 예정 필터가 어긋나지 않음.
+// toISOString()(UTC)을 쓰면 KST 새벽에 전날 일정이 '예정'에 남는 버그 발생.
+const todayKey = computed(() => {
+  if (!mounted.value) return "00000000";
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+});
 const norm = (d: string) => d.replace(/[^0-9]/g, "").slice(0, 8);
 
 const grouped = computed(() => {
