@@ -62,6 +62,7 @@ const palette = useCommandPalette();
         <a
           href="https://open.assembly.go.kr"
           target="_blank"
+          rel="noopener"
           class="font-semibold text-toss-gray-500 hover:text-toss-blue"
           >열린국회정보</a
         >
