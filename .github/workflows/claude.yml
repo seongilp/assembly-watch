@@ -12,6 +12,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  id-token: write # claude-code-action OIDC 인증에 필요
 
 concurrency:
   group: claude-issue-${{ github.event.issue.number }}
