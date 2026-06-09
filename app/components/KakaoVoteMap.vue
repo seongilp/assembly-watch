@@ -110,6 +110,7 @@ function add(content: HTMLElement, lat: number, lng: number, z: number) {
   const o = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(lat, lng),
     content, yAnchor: 0.5, xAnchor: 0.5, zIndex: z,
+    clickable: true, // 없으면 클릭이 지도로 통과돼 마커/버블 클릭이 안 먹음
   });
   o.setMap(map);
   overlays.push(o);
