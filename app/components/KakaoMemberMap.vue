@@ -100,7 +100,7 @@ function bubbleHtml(s: RegionStat, active: boolean, ox: number, oy: number) {
       : "";
   const ring = active ? "border:2px solid #3182F6;" : "border:1px solid rgba(0,0,0,.08);";
   return `
-    <div style="cursor:pointer;transform:translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px));min-width:78px;
+    <div style="cursor:pointer;transform:translate(${ox}px, ${oy}px);min-width:78px;
                 background:#fff;${ring}border-radius:10px;padding:5px 7px;
                 box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:Pretendard,sans-serif;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:3px;">
@@ -120,7 +120,7 @@ function faceHtml(m: MemberPt, focused: boolean) {
   const ring = focused ? "#3182F6" : m.color;
   const bw = focused ? 3 : 2;
   return `
-    <div title="${m.name} · ${m.origin}" style="cursor:pointer;transform:translate(-50%,-50%);position:relative;
+    <div title="${m.name} · ${m.origin}" style="cursor:pointer;position:relative;
                 width:${size}px;height:${size}px;border-radius:50%;background:${m.color};border:${bw}px solid ${ring};
                 box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
                 color:#fff;font:700 ${Math.round(size * 0.4)}px Pretendard,sans-serif;">
@@ -195,6 +195,8 @@ function add(content: HTMLElement, lat: number, lng: number, z: number) {
   const o = new kakao.maps.CustomOverlay({
     position: new kakao.maps.LatLng(lat, lng),
     content,
+    // xAnchor/yAnchor 0.5 로 오버레이가 좌표에 중앙정렬됨 → content 에 transform translate(-50%) 를
+    // 또 주면 보이는 마커만 어긋나고 클릭 히트영역은 좌표에 남아 클릭이 빗나감(=지도로 통과)
     yAnchor: 0.5,
     xAnchor: 0.5,
     zIndex: z,
@@ -222,7 +224,7 @@ function renderBubbles() {
     if (Math.hypot(n.ox, n.oy) > 22) {
       const dot = document.createElement("div");
       dot.style.cssText =
-        "width:7px;height:7px;border-radius:50%;background:#3182F6;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 0 2px rgba(0,0,0,.4);";
+        "width:7px;height:7px;border-radius:50%;background:#3182F6;border:2px solid #fff;box-shadow:0 0 2px rgba(0,0,0,.4);";
       add(dot, n.c.lat, n.c.lng, 0);
     }
   }
