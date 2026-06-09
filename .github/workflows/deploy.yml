@@ -35,6 +35,11 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 빌드 (베이크된 데이터 사용, gen:data 안 함)
+        env:
+          # 클라이언트 런타임 키는 빌드 시점에 runtimeConfig.public 으로 구워진다.
+          # (지도 = Kakao JS 키 필요. 누락 시 지도 로딩 실패 → 타일로 폴백)
+          KAKAO_MAP_KEY: ${{ secrets.KAKAO_MAP_KEY }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
         run: pnpm build:baked
 
       - name: 배포 + 캐시 퍼지
