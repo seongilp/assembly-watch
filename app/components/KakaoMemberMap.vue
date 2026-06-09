@@ -214,6 +214,23 @@ function add(content: HTMLElement, pos: any, z: number) {
   overlays.push(o);
 }
 
+// 지역 버블 클릭 → 그 지역 의원들이 모두 보이도록 지도 확대(얼굴 마커 노출).
+// setBounds 로 좌표 범위에 맞춘 뒤, 과도 확대(단일·밀집 지역)는 막고 얼굴 임계(FACE_LEVEL)는 보장.
+function focusRegion(region: string) {
+  if (!kakao || !map) return;
+  const pts = props.members.filter((m) => m.region === region && m.lat && m.lng);
+  if (!pts.length) return;
+  const bounds = new kakao.maps.LatLngBounds();
+  for (const m of pts) bounds.extend(new kakao.maps.LatLng(m.lat, m.lng));
+  // 가장자리 여백(px) — 버블/얼굴이 잘리지 않게
+  map.setBounds(bounds, 90, 70, 70, 70);
+  const lv = map.getLevel();
+  if (lv < 5)
+    map.setLevel(5); // 세종 등 밀집 지역 과도 확대 방지
+  else if (lv > FACE_LEVEL)
+    map.setLevel(FACE_LEVEL); // 넓은 지역도 얼굴이 뜨도록 한 단계 더 확대
+}
+
 function renderBubbles() {
   const nodes: any[] = [];
   for (const s of props.regions) {
@@ -227,7 +244,10 @@ function renderBubbles() {
   for (const n of nodes) {
     const el = document.createElement("div");
     el.innerHTML = bubbleHtml(n.s, n.s.region === props.selected);
-    el.addEventListener("click", () => emit("select", n.s.region));
+    el.addEventListener("click", () => {
+      emit("select", n.s.region);
+      focusRegion(n.s.region);
+    });
     add(el, coord(n.x + n.ox, n.y + n.oy), n.s.region === props.selected ? 10 : 1);
     if (Math.hypot(n.ox, n.oy) > 22) {
       const dot = document.createElement("div");
