@@ -93,14 +93,16 @@ function drawPolygons(id: string) {
 }
 
 // ── 시도 버블 ──────────────────────────────
-function bubbleHtml(s: RegionStat, active: boolean, ox: number, oy: number) {
+function bubbleHtml(s: RegionStat, active: boolean) {
   const seg = (g: Seg) =>
     g.count > 0
       ? `<span style="width:${((g.count / s.total) * 100).toFixed(1)}%;background:${g.color};display:inline-block;height:100%;"></span>`
       : "";
   const ring = active ? "border:2px solid #3182F6;" : "border:1px solid rgba(0,0,0,.08);";
+  // 위치(declutter 오프셋 포함)는 오버레이 좌표로 처리 → content 엔 transform 을 주지 않는다.
+  // transform 으로 옮기면 보이는 위치만 어긋나고 clickable 히트영역은 좌표에 남아 클릭이 빗나간다.
   return `
-    <div style="cursor:pointer;transform:translate(${ox}px, ${oy}px);min-width:78px;
+    <div style="cursor:pointer;min-width:78px;
                 background:#fff;${ring}border-radius:10px;padding:5px 7px;
                 box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:Pretendard,sans-serif;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:3px;">
@@ -138,6 +140,12 @@ function px(lat: number, lng: number): { x: number; y: number } | null {
   } catch {
     return null;
   }
+}
+
+// 컨테이너 픽셀 좌표 → 지도 좌표(px 의 역변환). declutter 오프셋을 좌표에 반영해
+// 오버레이 자체를 옮긴다(transform 대신) → 보이는 위치와 클릭 히트영역이 일치.
+function coord(x: number, y: number) {
+  return map.getProjection().coordsFromContainerPoint(new kakao.maps.Point(x, y));
 }
 
 function declutter(nodes: any[], w: number, h: number, pad: number) {
@@ -191,12 +199,12 @@ function membersInView(): any[] {
   return out;
 }
 
-function add(content: HTMLElement, lat: number, lng: number, z: number) {
+function add(content: HTMLElement, pos: any, z: number) {
   const o = new kakao.maps.CustomOverlay({
-    position: new kakao.maps.LatLng(lat, lng),
+    position: pos,
     content,
-    // xAnchor/yAnchor 0.5 로 오버레이가 좌표에 중앙정렬됨 → content 에 transform translate(-50%) 를
-    // 또 주면 보이는 마커만 어긋나고 클릭 히트영역은 좌표에 남아 클릭이 빗나감(=지도로 통과)
+    // xAnchor/yAnchor 0.5 로 오버레이가 좌표에 중앙정렬됨. content 엔 transform 을 주지 않고
+    // declutter 오프셋도 좌표(pos)에 반영해, 보이는 위치와 clickable 히트영역을 항상 일치시킨다.
     yAnchor: 0.5,
     xAnchor: 0.5,
     zIndex: z,
@@ -218,14 +226,14 @@ function renderBubbles() {
   declutter(nodes, 84, 44, 6);
   for (const n of nodes) {
     const el = document.createElement("div");
-    el.innerHTML = bubbleHtml(n.s, n.s.region === props.selected, Math.round(n.ox), Math.round(n.oy));
+    el.innerHTML = bubbleHtml(n.s, n.s.region === props.selected);
     el.addEventListener("click", () => emit("select", n.s.region));
-    add(el, n.c.lat, n.c.lng, n.s.region === props.selected ? 10 : 1);
+    add(el, coord(n.x + n.ox, n.y + n.oy), n.s.region === props.selected ? 10 : 1);
     if (Math.hypot(n.ox, n.oy) > 22) {
       const dot = document.createElement("div");
       dot.style.cssText =
         "width:7px;height:7px;border-radius:50%;background:#3182F6;border:2px solid #fff;box-shadow:0 0 2px rgba(0,0,0,.4);";
-      add(dot, n.c.lat, n.c.lng, 0);
+      add(dot, new kakao.maps.LatLng(n.c.lat, n.c.lng), 0);
     }
   }
 }
@@ -237,7 +245,6 @@ function renderMarkers(nodes: any[]) {
     const isF = n.m.id === focusedId.value;
     if (isF) focused = n;
     const el = document.createElement("div");
-    el.style.cssText = `transform:translate(${Math.round(n.ox)}px, ${Math.round(n.oy)}px);`;
     el.innerHTML = faceHtml(n.m, isF);
     el.addEventListener("click", async () => {
       focusedId.value = n.m.id;
@@ -246,7 +253,7 @@ function renderMarkers(nodes: any[]) {
       await loadShapes();
       if (focusedId.value === n.m.id) drawPolygons(n.m.id);
     });
-    add(el, n.m.lat, n.m.lng, isF ? 20 : 1);
+    add(el, coord(n.x + n.ox, n.y + n.oy), isF ? 20 : 1);
   }
   // 선거구 라벨은 지도 위 오버레이 대신 좌상단 배너로(마커 클릭 가림 방지)
 }
