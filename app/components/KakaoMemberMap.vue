@@ -287,7 +287,9 @@ function render() {
   const level = map.getLevel();
   // 줌인(<=10)이면 인원 많아도 얼굴(declutter로 분산), 11~12는 과밀 시 버블
   const pts = level <= FACE_LEVEL ? membersInView() : [];
-  const cap = level <= 10 ? 400 : 120;
+  // 지역 클릭 확대(level 11) 시 인접 시도 의원까지 viewport 에 들어와 최대 ~150명 →
+  // cap 120 이면 얼굴 대신 버블로 폴백되던 문제(경기/강원/충남). 220 으로 상향해 항상 얼굴.
+  const cap = level <= 10 ? 400 : 220;
   if (pts.length && pts.length <= cap) {
     renderMarkers(pts);
     if (focusedId.value && shapes) drawPolygons(focusedId.value); // 줌/이동 후에도 유지
