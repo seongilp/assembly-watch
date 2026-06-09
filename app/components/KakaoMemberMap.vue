@@ -92,6 +92,30 @@ function drawPolygons(id: string) {
   }
 }
 
+// 선거구 경계가 지도의 ~50% 를 차지하도록 확대(사방 25% 여백 → 가운데 절반에 fit).
+function focusDistrict(id: string) {
+  if (!shapes || !mapEl.value) return;
+  const codes = shapes.members[id];
+  if (!codes) return;
+  const bounds = new kakao.maps.LatLngBounds();
+  let has = false;
+  for (const code of codes) {
+    const shp = shapes.codes[code];
+    if (!shp) continue;
+    for (const ring of shp.rings)
+      for (const [lng, lat] of ring) {
+        bounds.extend(new kakao.maps.LatLng(lat, lng));
+        has = true;
+      }
+  }
+  if (!has) return;
+  const w = mapEl.value.clientWidth;
+  const h = mapEl.value.clientHeight;
+  const padX = Math.round(w * 0.25);
+  const padY = Math.round(h * 0.25);
+  map.setBounds(bounds, padY, padX, padY, padX);
+}
+
 // ── 시도 버블 ──────────────────────────────
 function bubbleHtml(s: RegionStat, active: boolean) {
   const seg = (g: Seg) =>
@@ -271,7 +295,10 @@ function renderMarkers(nodes: any[]) {
       emit("select", n.m.region);
       render();
       await loadShapes();
-      if (focusedId.value === n.m.id) drawPolygons(n.m.id);
+      if (focusedId.value === n.m.id) {
+        drawPolygons(n.m.id);
+        focusDistrict(n.m.id); // 선거구가 지도 ~50% 차지하도록 확대(→idle→render 가 폴리곤·마커 재그림)
+      }
     });
     add(el, coord(n.x + n.ox, n.y + n.oy), isF ? 20 : 1);
   }
