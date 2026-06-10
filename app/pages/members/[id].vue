@@ -76,6 +76,13 @@ const infoRows = computed(() => {
   ].filter((r) => r.value);
 });
 
+// 지역구 의원만 선거구 지도 노출 (비례대표는 선거구 없음).
+// 지도 컴포넌트가 shapes 에서 좌표를 못 찾으면 empty 이벤트로 카드를 숨긴다.
+const districtUnavailable = ref(false);
+const showDistrict = computed(
+  () => member.value?.electType === "지역구" && !districtUnavailable.value,
+);
+
 const contacts = computed(() => {
   const m = member.value;
   if (!m) return [];
@@ -149,6 +156,17 @@ const contacts = computed(() => {
           </a>
         </div>
       </section>
+
+      <!-- 선거구 지도 (지역구 의원 한정) -->
+      <ClientOnly v-if="showDistrict">
+        <MemberDistrictMap
+          class="mt-4"
+          :id="member.id"
+          :party="member.party"
+          :origin="member.origin"
+          @empty="districtUnavailable = true"
+        />
+      </ClientOnly>
 
       <div class="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- 기본 정보 -->
