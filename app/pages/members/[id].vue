@@ -10,6 +10,7 @@ import {
   Building2,
   Vote,
   Crown,
+  ChevronDown,
 } from "lucide-vue-next";
 import type { MemberDetail, Insights } from "#shared/types";
 import { partyColor } from "~/lib/party";
@@ -49,6 +50,9 @@ const votes = computed(() => ({
 }));
 const billsPending = pending;
 const votesPending = pending;
+
+// 표결 이력은 기본 접힘 — 요약(찬성/반대/기권/불참 수)만 보이고 클릭 시 펼친다.
+const votesOpen = ref(false);
 
 const voteTally = computed(() => {
   const t = { 찬성: 0, 반대: 0, 기권: 0, 불참: 0 } as Record<string, number>;
@@ -188,20 +192,22 @@ const contacts = computed(() => {
           </dl>
         </section>
 
-        <!-- 대표발의 법안 -->
-        <section class="lg:col-span-2 rounded-2xl bg-card card-shadow p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
-              <FileText class="size-4 text-toss-blue" /> 대표발의 법안
-            </h2>
-            <span
-              v-if="bills?.rows?.length"
-              class="text-[12px] font-semibold text-toss-blue bg-toss-blue-light rounded-full px-2.5 py-1"
-              >{{ bills.rows.length }}건</span
-            >
-          </div>
+        <!-- 대표발의 법안 — lg 에서 기본정보 카드 높이에 맞추고 리스트만 내부 스크롤 -->
+        <section class="lg:col-span-2 rounded-2xl bg-card card-shadow relative">
+          <div class="flex flex-col p-6 lg:absolute lg:inset-0">
+            <div class="flex items-center justify-between mb-4 shrink-0">
+              <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
+                <FileText class="size-4 text-toss-blue" /> 대표발의 법안
+              </h2>
+              <span
+                v-if="bills?.rows?.length"
+                class="text-[12px] font-semibold text-toss-blue bg-toss-blue-light rounded-full px-2.5 py-1"
+                >{{ bills.rows.length }}건</span
+              >
+            </div>
 
-          <DataState
+            <div class="flex-1 min-h-0 overflow-y-auto -mr-2 pr-2">
+              <DataState
             :pending="billsPending"
             :empty="!bills?.rows?.length"
             empty-text="최근 발의 데이터가 없습니다."
@@ -229,21 +235,28 @@ const contacts = computed(() => {
                   </div>
                 </a>
               </li>
-            </ul>
-            <p class="mt-3 text-[11px] text-toss-gray-400">
-              ※ 최근 발의분 중 대표발의(이름 기준) 매칭 결과입니다.
-            </p>
-          </DataState>
+              </ul>
+              <p class="mt-3 text-[11px] text-toss-gray-400">
+                ※ 최근 발의분 중 대표발의(이름 기준) 매칭 결과입니다.
+              </p>
+              </DataState>
+            </div>
+          </div>
         </section>
       </div>
 
       <!-- 최근 본회의 표결 이력 -->
       <section class="mt-4 rounded-2xl bg-card card-shadow p-6">
-        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between gap-2 flex-wrap text-left"
+          :class="votesOpen ? 'mb-4' : ''"
+          @click="votesOpen = !votesOpen"
+        >
           <h2 class="flex items-center gap-2 text-[15px] font-bold text-toss-gray-900">
             <Vote class="size-4 text-toss-blue" /> 최근 본회의 표결 이력
           </h2>
-          <div v-if="votes?.rows?.length" class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5">
             <span
               v-for="(cnt, label) in voteTally"
               :key="label"
@@ -253,9 +266,14 @@ const contacts = computed(() => {
             >
               {{ label }} {{ cnt }}
             </span>
+            <ChevronDown
+              class="size-4 text-toss-gray-400 transition-transform shrink-0"
+              :class="votesOpen ? 'rotate-180' : ''"
+            />
           </div>
-        </div>
+        </button>
 
+        <div v-show="votesOpen">
         <DataState
           :pending="votesPending"
           :empty="!votes?.rows?.length"
@@ -290,6 +308,7 @@ const contacts = computed(() => {
             ※ 최근 본회의 표결 {{ votes?.scanned ?? 0 }}건 기준 (표결 API는 안건별 조회만 지원).
           </p>
         </DataState>
+        </div>
       </section>
 
       <!-- 표결 쌍둥이 (정치적 궁합) -->
