@@ -234,6 +234,82 @@ export interface VoteInsights {
   quiz: { id: string; name: string; no: string }[];
 }
 
+/** 펀팩트 "데이터 그래프" 베이크 (server/assets/graph-data.json) */
+export interface GraphMini {
+  id: string;
+  name: string;
+  party: string;
+}
+export interface GraphPair {
+  a: GraphMini;
+  b: GraphMini;
+  rate: number; // 0~100 (일치율 %)
+  common: number;
+}
+export interface GraphNode {
+  id: string;
+  name: string;
+  party: string;
+  region: string;
+  x: number; // 0~1000 (정치 지형도 좌표)
+  y: number;
+  age: number | null;
+}
+export interface GraphData {
+  generatedAt: string | null;
+  nodeCount: number;
+  voteBills: number;
+  parties: { party: string; seats: number }[];
+  map: { nodes: GraphNode[] };
+  bestPairs: GraphPair[];
+  worstPairs: GraphPair[];
+  crossBest: GraphPair[];
+  age: {
+    list: { id: string; name: string; party: string; age: number }[];
+    buckets: { decade: number; count: number }[];
+    avg: number;
+    youngest: { id: string; name: string; party: string; age: number }[];
+    oldest: { id: string; name: string; party: string; age: number }[];
+  };
+  gender: {
+    total: { 남: number; 여: number };
+    ageAvg: { 남: number | null; 여: number | null };
+    byParty: { party: string; 남: number; 여: number; total: number; womenRate: number }[];
+    women: GraphMini[];
+  };
+  terms: {
+    buckets: { term: string; count: number }[];
+    veterans: { id: string; name: string; party: string; reelection: string }[];
+  };
+  zodiac: { zodiac: string; count: number; members: GraphMini[] }[];
+  surnames: { surname: string; count: number; members: GraphMini[] }[];
+  regions: {
+    region: string;
+    total: number;
+    parties: { party: string; count: number }[];
+    top: string;
+  }[];
+  closeBill: {
+    name: string;
+    no: string;
+    date: string;
+    committee: string;
+    procResult: string;
+    y: number;
+    n: number;
+    b: number;
+    yes: GraphMini[];
+    no: GraphMini[];
+    blank: GraphMini[];
+  } | null;
+  partyAge: { party: string; avg: number; count: number }[];
+  generations: {
+    decade: number;
+    total: number;
+    parties: { party: string; count: number }[];
+  }[];
+}
+
 /** 의원 상세 통합 응답 */
 export interface MemberDetail {
   member: Member | null;
