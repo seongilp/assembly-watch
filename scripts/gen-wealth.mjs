@@ -318,23 +318,40 @@ async function main() {
       if (polys.some((rings) => inRings(rings, lng, lat))) cand.push([lat, lng]);
     }
     if (!cand.length) return [];
-    // 중심(후보 평균)에서 가장 가까운 점부터 → 1명이면 영역 가운데
+    // k-means(Lloyd)로 영역을 n조각으로 나눠 각 조각의 "가운데"에 배치.
+    // max-min 방식은 n 이 작으면 모서리 극단을 고르지만(넓은 군에 1~2명이 양끝),
+    // 조각 중심은 항상 안쪽으로 모여 자연스럽다. n=1 → 전체 무게중심.
+    const k = Math.min(n, cand.length);
+    // 초기 시드: 무게중심에서 가까운 점 + max-min 으로 분산
     const cy = cand.reduce((s, p) => s + p[0], 0) / cand.length;
     const cx = cand.reduce((s, p) => s + p[1], 0) / cand.length;
-    const picked = [];
-    let first = cand.reduce((b, p) => ((p[0] - cy) ** 2 + (p[1] - cx) ** 2 < (b[0] - cy) ** 2 + (b[1] - cx) ** 2 ? p : b));
-    picked.push(first);
-    while (picked.length < n && picked.length < cand.length) {
+    let centers = [cand.reduce((b, p) => ((p[0] - cy) ** 2 + (p[1] - cx) ** 2 < (b[0] - cy) ** 2 + (b[1] - cx) ** 2 ? p : b)).slice()];
+    while (centers.length < k) {
       let best = null, bestD = -1;
       for (const p of cand) {
-        if (picked.includes(p)) continue;
         let d = Infinity;
-        for (const q of picked) d = Math.min(d, (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2);
+        for (const q of centers) d = Math.min(d, (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2);
         if (d > bestD) { bestD = d; best = p; }
       }
-      if (!best) break;
-      picked.push(best);
+      centers.push(best.slice());
     }
+    // Lloyd 반복: 후보를 가장 가까운 중심에 배정 → 중심 = 조각 평균
+    for (let it = 0; it < 15; it++) {
+      const sum = centers.map(() => [0, 0, 0]);
+      for (const p of cand) {
+        let bi = 0, bd = Infinity;
+        for (let i = 0; i < centers.length; i++) {
+          const d = (p[0] - centers[i][0]) ** 2 + (p[1] - centers[i][1]) ** 2;
+          if (d < bd) { bd = d; bi = i; }
+        }
+        sum[bi][0] += p[0]; sum[bi][1] += p[1]; sum[bi][2]++;
+      }
+      centers = centers.map((c, i) => (sum[i][2] ? [sum[i][0] / sum[i][2], sum[i][1] / sum[i][2]] : c));
+    }
+    // 평균점이 오목 폴리곤 밖일 수 있어 가장 가까운 내부 후보로 스냅
+    const picked = centers.map((c) =>
+      cand.reduce((b, p) => ((p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 < (b[0] - c[0]) ** 2 + (b[1] - c[1]) ** 2 ? p : b)),
+    );
     return picked.map(([la, ln]) => [Math.round(la * 1e5) / 1e5, Math.round(ln * 1e5) / 1e5]);
   }
 
