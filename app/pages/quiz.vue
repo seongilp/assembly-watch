@@ -3,8 +3,10 @@ import { ThumbsUp, ThumbsDown, MinusCircle, RotateCcw } from "lucide-vue-next";
 import type { VoteData, VoteInsights } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
 
-const { data: vd } = await useFetch<VoteData>("/api/votedata", { key: "votedata" });
-const { data: vi } = await useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
+// 두 fetch 병렬 (순차 await 워터폴 제거)
+const vdReq = useFetch<VoteData>("/api/votedata", { key: "votedata" });
+const viReq = useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
+const [{ data: vd }, { data: vi }] = await Promise.all([vdReq, viReq]);
 
 // 퀴즈 안건 (논쟁적 10개) + bills index 매핑
 const billIndex = computed(() => new Map((vd.value?.bills ?? []).map((b, i) => [b.id, i])));

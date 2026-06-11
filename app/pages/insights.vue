@@ -56,6 +56,13 @@ const deltaRank = computed(() =>
 );
 
 useHead({ title: "펀팩트 · 의정감시" });
+useSeoMeta({
+  description: "발의왕·표결 지형도·재산 랭킹·의원들의 아파트까지 — 제22대 국회 재미로 보는 의정활동",
+  ogTitle: "국회의원 펀팩트 — 랭킹·정치 지형도·재산",
+  ogDescription: "발의왕은 누구? 의원들의 아파트는 어디? 데이터로 보는 22대 국회",
+  ogImage: "https://asm.zihado.com/og-insights.png",
+  twitterCard: "summary_large_image",
+});
 </script>
 
 <template>
