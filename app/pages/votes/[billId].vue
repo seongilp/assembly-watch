@@ -2,6 +2,7 @@
 import { ArrowLeft, ExternalLink, Search } from "lucide-vue-next";
 import { normalizeParty } from "~/lib/party";
 import { formatDateTime, voteStyle, resultFill } from "~/lib/format";
+import type { GroupDim } from "~/lib/member-group";
 
 const partyColor = usePartyColor();
 
@@ -10,12 +11,21 @@ const billId = computed(() => String(route.params.billId));
 
 const { data, pending, error } = await useFetch(`/api/votes/${billId.value}`);
 
-const view = ref<"list" | "party" | "region">("list");
+const view = ref<"list" | "party" | "region" | GroupDim>("list");
 const VIEWS = [
   { key: "list", label: "명단" },
   { key: "party", label: "정당별" },
   { key: "region", label: "지역별" },
+  { key: "wealth", label: "재산" },
+  { key: "home", label: "거주지" },
+  { key: "age", label: "나이" },
+  { key: "surname", label: "성씨" },
+  { key: "starsign", label: "별자리" },
 ] as const;
+const GROUP_DIMS: GroupDim[] = ["wealth", "home", "age", "surname", "starsign"];
+const groupDim = computed<GroupDim | null>(() =>
+  GROUP_DIMS.includes(view.value as GroupDim) ? (view.value as GroupDim) : null,
+);
 
 const resultFilter = ref<string>("전체");
 const partyFilter = ref<string>("전체");
@@ -112,12 +122,12 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
       <!-- 🔭 이 표결의 발견 (베이크된 집단 특성 분석, 팩트 없으면 숨김) -->
       <VoteFacts :facts="data?.facts ?? []" />
 
-      <!-- 뷰 전환 -->
-      <div class="inline-flex rounded-2xl bg-toss-gray-100 p-1 mb-4">
+      <!-- 뷰 전환 (그룹 차원이 많아 줄바꿈 허용) -->
+      <div class="inline-flex flex-wrap rounded-2xl bg-toss-gray-100 p-1 mb-4">
         <button
           v-for="v in VIEWS"
           :key="v.key"
-          class="rounded-xl px-4 sm:px-5 py-2 text-[14px] font-bold transition-all"
+          class="rounded-xl px-3.5 sm:px-5 py-2 text-[14px] font-bold transition-all"
           :class="view === v.key ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
           @click="view = v.key"
         >
@@ -130,6 +140,9 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
 
       <!-- 지역별 -->
       <VoteByRegion v-else-if="view === 'region'" :records="data?.rows ?? []" />
+
+      <!-- 재산/거주지/나이/성씨/별자리 그룹 -->
+      <VoteByGroup v-else-if="groupDim" :records="data?.rows ?? []" :dim="groupDim" />
 
       <!-- 명단 -->
       <template v-else>

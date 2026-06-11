@@ -2,9 +2,48 @@ import type { VoteFact, VoteRecord } from "#shared/types";
 import photos from "../../assets/member-photos.json";
 import votedata from "../../assets/votedata.json";
 import voteAnalysis from "../../assets/vote-analysis.json";
+import membersJson from "../../assets/members.json";
+import wealthJson from "../../assets/wealth.json";
 
 const PHOTOS = photos as Record<string, string>;
 const FACTS = (voteAnalysis as unknown as { byBill: Record<string, VoteFact[]> }).byBill;
+
+// 의원 속성(생일·재산·거주지) — 재산/나이/성씨/별자리/거주지 그룹 보기용
+interface MemberAttrs {
+  birth: string;
+  wealth: number | null;
+  home: string;
+}
+const ATTRS: Record<string, MemberAttrs> = (() => {
+  const out: Record<string, MemberAttrs> = {};
+  const raw = membersJson as unknown;
+  const rows = (Array.isArray(raw) ? raw : ((raw as { rows?: unknown[] }).rows ?? [])) as {
+    id?: string;
+    birth?: string;
+  }[];
+  for (const m of rows) {
+    if (m.id) out[m.id] = { birth: m.birth ?? "", wealth: null, home: "" };
+  }
+  const w = wealthJson as unknown as {
+    members?: { id: string; total: number }[];
+    homesMap?: { gu: string; members?: { id: string }[] }[];
+  };
+  for (const r of w.members ?? []) {
+    if (out[r.id]) out[r.id]!.wealth = r.total;
+  }
+  // homesMap: 구 → 의원 목록. 여러 채 신고한 의원은 첫 번째(최다 신고 구 순) 기준.
+  for (const g of w.homesMap ?? []) {
+    for (const m of g.members ?? []) {
+      if (out[m.id] && !out[m.id]!.home) out[m.id]!.home = g.gu;
+    }
+  }
+  return out;
+})();
+
+const withAttrs = (r: VoteRecord): VoteRecord => {
+  const a = r.id ? ATTRS[r.id] : undefined;
+  return a ? { ...r, birth: a.birth, wealth: a.wealth, home: a.home } : r;
+};
 
 // 베이크된 표결 매트릭스(283건×300명). 코드: Y=찬성 N=반대 B=기권 A=불참 -=무기록(비현직)
 interface BakedBill {
@@ -76,15 +115,17 @@ function fromBaked(billId: string): RollCallResponse | null {
     const code = VD.matrix[m.id]?.[idx];
     if (!code || code === "-") continue; // 무기록(해당 시점 비현직) 제외
     const result = CODE[code] ?? "불참";
-    rows.push({
-      name: m.name,
-      party: m.party,
-      origin: m.origin,
-      result,
-      date: b.date,
-      id: m.id,
-      photo: PHOTOS[m.id] ?? "",
-    });
+    rows.push(
+      withAttrs({
+        name: m.name,
+        party: m.party,
+        origin: m.origin,
+        result,
+        date: b.date,
+        id: m.id,
+        photo: PHOTOS[m.id] ?? "",
+      }),
+    );
     tally[result]++;
   }
   const bill: RollCallBill = {
@@ -112,11 +153,13 @@ async function fromLive(billId: string): Promise<RollCallResponse> {
     const pic = PHOTOS[m.id];
     if (pic) nameToPhoto[m.name] = pic;
   }
-  const rows = res.rows.map(mapVoteRecord).map((r) => ({
-    ...r,
-    id: nameToId[r.name] ?? "",
-    photo: nameToPhoto[r.name] ?? "",
-  }));
+  const rows = res.rows.map(mapVoteRecord).map((r) =>
+    withAttrs({
+      ...r,
+      id: nameToId[r.name] ?? "",
+      photo: nameToPhoto[r.name] ?? "",
+    }),
+  );
   const tally = { 찬성: 0, 반대: 0, 기권: 0, 불참: 0 };
   for (const r of rows) {
     if (r.result.includes("찬성")) tally.찬성++;

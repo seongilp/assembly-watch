@@ -109,6 +109,9 @@ export interface VoteRecord {
   date: string; // VOTE_DATE
   photo?: string; // 이름 매칭으로 보강
   id?: string; // MONA_CD — 이름 매칭으로 보강(베이크 아바타용)
+  birth?: string; // YYYY-MM-DD — 나이/별자리 그룹 보기용
+  wealth?: number | null; // 신고 재산(억) — 재산 그룹 보기용
+  home?: string; // 신고 주택 소재지 ("서울 강남구") — 거주지 그룹 보기용
 }
 
 export interface Committee {
