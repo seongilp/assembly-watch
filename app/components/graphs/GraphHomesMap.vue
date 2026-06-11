@@ -52,7 +52,8 @@ function drawBoundary(gu: string | null) {
         strokeColor: "#3182F6",
         strokeOpacity: 0.9,
         fillColor: "#3182F6",
-        fillOpacity: 0.08,
+        fillOpacity: 0.18, // 선거구 지도와 동일 — 반투명 셰이드로 영역이 보이게
+
       });
       poly.setMap(map);
       polygons.push(poly);
