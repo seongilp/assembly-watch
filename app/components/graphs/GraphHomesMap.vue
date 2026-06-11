@@ -163,7 +163,8 @@ onMounted(async () => {
     kakao = await useKakaoLoader();
     if (!mapEl.value) return;
     map = new kakao.maps.Map(mapEl.value, {
-      center: new kakao.maps.LatLng(36.5, 127.6),
+      // 중심을 수도권 남부로 — 전국(level 13)도 다 보이고, 확대하면 바로 수도권 얼굴 마커가 뜬다(집 대부분 수도권)
+      center: new kakao.maps.LatLng(37.0, 127.2),
       level: 13,
       draggable: true,
     });
