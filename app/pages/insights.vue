@@ -2,12 +2,48 @@
 import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff } from "lucide-vue-next";
 import type { Insights, VoteInsights, GraphData, WealthData, InsightMember } from "#shared/types";
 
-const { data } = await useFetch<Insights>("/api/insights");
-const { data: vi } = await useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
-const { data: g } = await useFetch<GraphData>("/api/graph", { key: "graph" });
-const { data: w } = await useFetch<WealthData>("/api/wealth", { key: "wealth" });
+const route = useRoute();
+const router = useRouter();
 
-const tab = ref<"fun" | "graph" | "wealth">("fun");
+// 랭킹(기본 탭)은 SSR, graph/wealth 는 탭 진입 시 지연 로드 — 첫 방문 40KB 절감
+const insightsReq = useFetch<Insights>("/api/insights");
+const viReq = useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
+const [{ data }, { data: vi }] = await Promise.all([insightsReq, viReq]);
+
+const { data: g, execute: loadGraph } = useFetch<GraphData>("/api/graph", {
+  key: "graph",
+  server: false,
+  immediate: false,
+});
+const { data: w, execute: loadWealth } = useFetch<WealthData>("/api/wealth", {
+  key: "wealth",
+  server: false,
+  immediate: false,
+});
+
+// 탭 ↔ URL 동기화 (?tab=graph|wealth) — 새로고침·공유에도 유지
+type Tab = "fun" | "graph" | "wealth";
+const initTab = (q: unknown): Tab => (q === "graph" || q === "wealth" ? q : "fun");
+const tab = ref<Tab>(initTab(route.query.tab));
+watch(tab, (t) => {
+  router.replace({ query: { ...route.query, tab: t === "fun" ? undefined : t } });
+  if (t === "graph") loadGraph();
+  if (t === "wealth") loadWealth();
+});
+// 프리렌더 하이드레이션 직후 라우터가 실제 URL 로 동기화될 때도 잡히도록 쿼리를 직접 감시
+watch(
+  () => route.query.tab,
+  (q) => {
+    const t = initTab(q);
+    if (t !== tab.value) tab.value = t;
+  },
+);
+
+onMounted(() => {
+  // 생일 배너는 graph 데이터 사용 → 화면 표시와 무관하게 백그라운드 로드.
+  // (직접 ?tab= 진입 보정은 위 route.query.tab watch 가 라우터 동기화 시점에 처리)
+  loadGraph();
+});
 
 // 재산(억) → RankingCard(count) 매핑
 const asRank = (rows?: { id: string; name: string; party: string; origin: string; total: number }[]): InsightMember[] =>

@@ -7,10 +7,8 @@ const route = useRoute();
 const router = useRouter();
 const partyClr = usePartyColor();
 
-// 발의의원 이름→현직의원(사진/링크) 매핑 (프리렌더 payload 에 인라인되도록 await)
-const { data: membersData } = await useFetch<{ rows: MemberListItem[] }>("/api/members", {
-  key: "members",
-});
+// 발의의원 이름→현직의원(사진/링크) 매핑 — bills-recent 와 병렬 fetch(워터폴 제거)
+const membersReq = useFetch<{ rows: MemberListItem[] }>("/api/members", { key: "members" });
 const memberByName = computed(
   () => new Map((membersData.value?.rows ?? []).map((r) => [r.name, r])),
 );
@@ -33,10 +31,10 @@ async function toggleBill(id: string) {
 }
 
 // 최근 의안(계류/처리 각 300)을 1회 로드(프리렌더 페이로드) → 탭/검색/페이지 전부 클라이언트
-const { data, pending, error } = await useFetch<{ pending: Bill[]; processed: Bill[] }>(
-  "/api/bills-recent",
-  { key: "bills-recent" },
-);
+const billsReq = useFetch<{ pending: Bill[]; processed: Bill[] }>("/api/bills-recent", {
+  key: "bills-recent",
+});
+const [{ data: membersData }, { data, pending, error }] = await Promise.all([membersReq, billsReq]);
 
 const type = ref<"pending" | "processed">("pending");
 const search = ref("");

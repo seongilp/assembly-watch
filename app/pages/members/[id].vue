@@ -19,16 +19,19 @@ import { formatDate, voteStyle } from "~/lib/format";
 const route = useRoute();
 const id = computed(() => String(route.params.id));
 
-// 칭호 (펀팩트 1위와 일치 시) — member-detail await 보다 먼저 호출(SSR 컨텍스트 보존)
-const { data: insights } = await useFetch<Insights>("/api/insights", { key: "insights" });
-const { data: vinsights } = await useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
-
+// 칭호(펀팩트)·상세 3개 fetch 를 병렬로 — 순차 await 는 SSR 지연이 3배(워터폴)
+const insightsReq = useFetch<Insights>("/api/insights", { key: "insights" });
+const vinsightsReq = useFetch<VoteInsights>("/api/vote-insights", { key: "vote-insights" });
 // 단일 엔드포인트로 member + bills + votes 통합 조회 (하이드레이션 일관성)
 // 정적 URL + 명시적 key 로 SSR↔CSR payload 매칭 보장
-const { data, pending } = await useFetch<MemberDetail>(
-  `/api/members/${id.value}`,
-  { key: `member-detail-${id.value}` },
-);
+const detailReq = useFetch<MemberDetail>(`/api/members/${id.value}`, {
+  key: `member-detail-${id.value}`,
+});
+const [{ data: insights }, { data: vinsights }, { data, pending }] = await Promise.all([
+  insightsReq,
+  vinsightsReq,
+  detailReq,
+]);
 
 const member = computed(() => data.value?.member ?? undefined);
 
