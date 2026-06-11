@@ -1,13 +1,19 @@
 import type { BillProposers } from "#shared/types";
+import baked from "../../assets/bill-proposers.json";
+
+const BAKED = baked as Record<string, BillProposers>;
 
 /**
- * 의안 공동발의자 명단 (likms coactor 팝업 서버렌더 HTML 파싱) → 정당별 그룹.
- * 캐시 24h. 팝업 대신 인앱 한 화면에서 정당(숫자)·명단 표시용.
+ * 의안 공동발의자 명단 — 빌드 베이크(bill-proposers.json) 우선, 미베이크 의안만
+ * likms coactor 팝업 HTML 라이브 파싱 폴백(캐시 24h). 인앱 정당별 명단 표시용.
  */
 export default defineCachedEventHandler(
   async (event): Promise<BillProposers> => {
     const billId = getRouterParam(event, "billId");
     if (!billId) throw createError({ statusCode: 400, statusMessage: "billId 필요" });
+
+    const hit = BAKED[billId];
+    if (hit) return hit;
 
     const url = `https://likms.assembly.go.kr/bill/coactorListPopup.do?billId=${encodeURIComponent(billId)}`;
     let html = "";
