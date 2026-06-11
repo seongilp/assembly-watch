@@ -383,6 +383,73 @@ const regionStats = Object.entries(regionAgg)
   }))
   .sort((a, b) => b.total - a.total);
 
+// ── 별자리 분포 ──
+const SIGNS = [
+  { sign: "물병자리", emoji: "♒", from: [1, 20], to: [2, 18] },
+  { sign: "물고기자리", emoji: "♓", from: [2, 19], to: [3, 20] },
+  { sign: "양자리", emoji: "♈", from: [3, 21], to: [4, 19] },
+  { sign: "황소자리", emoji: "♉", from: [4, 20], to: [5, 20] },
+  { sign: "쌍둥이자리", emoji: "♊", from: [5, 21], to: [6, 21] },
+  { sign: "게자리", emoji: "♋", from: [6, 22], to: [7, 22] },
+  { sign: "사자자리", emoji: "♌", from: [7, 23], to: [8, 22] },
+  { sign: "처녀자리", emoji: "♍", from: [8, 23], to: [9, 23] },
+  { sign: "천칭자리", emoji: "♎", from: [9, 24], to: [10, 22] },
+  { sign: "전갈자리", emoji: "♏", from: [10, 23], to: [11, 22] },
+  { sign: "사수자리", emoji: "♐", from: [11, 23], to: [12, 24] },
+  { sign: "염소자리", emoji: "♑", from: [12, 25], to: [1, 19] },
+];
+function signOf(mo, d) {
+  for (const s of SIGNS) {
+    const [fm, fd] = s.from, [tm, td] = s.to;
+    if (fm <= tm ? ((mo === fm && d >= fd) || (mo === tm && d <= td) || (mo > fm && mo < tm)) : (mo === fm && d >= fd) || (mo === tm && d <= td) || mo > fm || mo < tm)
+      return s.sign;
+  }
+  return null;
+}
+const signAgg = {};
+const signMembers = {};
+for (const m of membersRaw) {
+  const md = String(m.birth || "").match(/^\d{4}-(\d{2})-(\d{2})/);
+  if (!md) continue;
+  const sg = signOf(+md[1], +md[2]);
+  if (!sg) continue;
+  signAgg[sg] = (signAgg[sg] || 0) + 1;
+  (signMembers[sg] = signMembers[sg] || []).push({ id: m.id, name: m.name, party: (m.party || "").split("/")[0]?.trim() || "무소속" });
+}
+const starsigns = SIGNS.map((s) => ({
+  sign: s.sign, emoji: s.emoji, count: signAgg[s.sign] || 0, members: (signMembers[s.sign] || []).slice(0, 10),
+}));
+
+// ── 생일 (월-일만 베이크 → 클라가 오늘과 매칭) ──
+const birthdays = membersRaw
+  .map((m) => {
+    const md = String(m.birth || "").match(/^\d{4}-(\d{2}-\d{2})/);
+    return md ? { id: m.id, name: m.name, party: (m.party || "").split("/")[0]?.trim() || "무소속", md: md[1] } : null;
+  })
+  .filter(Boolean);
+
+// ── 가결률 (실속왕/공갈왕) — member-details 의 대표발의(최근 최대 30건) 처리결과 기준 ──
+const details = read("member-details.json");
+const PASS = /원안가결|수정가결/;
+const REFLECT = /원안가결|수정가결|대안반영폐기|수정안반영폐기/;
+const passList = [];
+for (const m of membersRaw) {
+  const bills = details[m.id]?.bills ?? [];
+  if (bills.length < 10) continue; // 표본 최소 10건
+  const reflected = bills.filter((b) => REFLECT.test(b.procResult || "")).length;
+  const passed = bills.filter((b) => PASS.test(b.procResult || "")).length;
+  passList.push({
+    id: m.id, name: m.name, party: (m.party || "").split("/")[0]?.trim() || "무소속", origin: m.origin, photo: "",
+    rate: Math.round((reflected / bills.length) * 1000) / 1000,
+    count: bills.length, passed, reflected,
+  });
+}
+const passRate = {
+  best: [...passList].sort((a, b) => b.rate - a.rate || b.reflected - a.reflected).slice(0, 50),
+  worst: [...passList].sort((a, b) => a.rate - b.rate || b.count - a.count).slice(0, 50),
+  sample: "최근 대표발의 최대 30건 기준 · 반영=가결+대안반영",
+};
+
 // ── 박빙의 순간 (가장 표가 갈린 안건의 의원별 찬/반) ──
 // votedata.bills 순서 = matrix 컬럼 순서. 찬-반 격차가 가장 작은(둘 다 충분한) 안건 선택.
 const billsArr = vd.bills;
@@ -433,6 +500,9 @@ const out = {
   closeBill,
   partyAge,
   generations,
+  starsigns,
+  birthdays,
+  passRate,
 };
 
 writeFileSync(A("graph-data.json"), JSON.stringify(out));

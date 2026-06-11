@@ -49,6 +49,8 @@ const titles = computed(() => {
   if (isTop(a?.no)) t.push("반대왕");
   if (isTop(a?.blank)) t.push("기권왕");
   if (isTop(a?.absent)) t.push("불참왕");
+  if (isTop(a?.leastProposed)) t.push("잠수왕");
+  if (isTop(a?.attendanceLow)) t.push("결석왕");
   return t;
 });
 const bills = computed(() => ({ rows: data.value?.bills ?? [] }));

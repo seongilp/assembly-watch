@@ -308,6 +308,46 @@ export interface GraphData {
     total: number;
     parties: { party: string; count: number }[];
   }[];
+  starsigns: { sign: string; emoji: string; count: number; members: GraphMini[] }[];
+  birthdays: { id: string; name: string; party: string; md: string }[];
+  passRate: {
+    best: PassRateMember[];
+    worst: PassRateMember[];
+    sample: string;
+  };
+}
+
+export interface PassRateMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  photo: string;
+  rate: number; // 0~1 반영률
+  count: number; // 표본 발의 수
+  passed: number;
+  reflected: number;
+}
+
+/** 국회의원 재산 (정보공개센터 정제 국회공보 데이터 베이크) */
+export interface WealthMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  total: number; // 억원
+  prev: number;
+  delta: number;
+}
+export interface WealthData {
+  basis: string;
+  members: WealthMember[];
+  byParty: { party: string; avg: number; median: number; count: number }[];
+  realEstate: { id: string; name: string; party: string; origin: string; total: number }[];
+  delta: WealthMember[];
+  deltaLow: WealthMember[];
+  homesTop: { gu: string; count: number }[];
+  betrayal: { id: string; name: string; party: string; origin: string; homes: string[] }[];
 }
 
 /** 의원 상세 통합 응답 */
