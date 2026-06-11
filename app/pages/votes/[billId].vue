@@ -19,10 +19,12 @@ const VIEWS = [
   { key: "wealth", label: "재산" },
   { key: "home", label: "거주지" },
   { key: "age", label: "나이" },
+  { key: "terms", label: "선수" },
   { key: "surname", label: "성씨" },
   { key: "starsign", label: "별자리" },
+  { key: "namelen", label: "글자수" },
 ] as const;
-const GROUP_DIMS: GroupDim[] = ["wealth", "home", "age", "surname", "starsign"];
+const GROUP_DIMS: GroupDim[] = ["wealth", "home", "age", "terms", "surname", "starsign", "namelen"];
 const groupDim = computed<GroupDim | null>(() =>
   GROUP_DIMS.includes(view.value as GroupDim) ? (view.value as GroupDim) : null,
 );

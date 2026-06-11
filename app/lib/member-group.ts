@@ -1,7 +1,7 @@
 import type { VoteRecord } from "#shared/types";
 
-/** 표결 명단 그룹 보기 차원 (재산/나이/성씨/별자리/거주지) */
-export type GroupDim = "wealth" | "age" | "surname" | "starsign" | "home";
+/** 표결 명단 그룹 보기 차원 (재산/나이/성씨/별자리/거주지/선수/글자수) */
+export type GroupDim = "wealth" | "age" | "surname" | "starsign" | "home" | "terms" | "namelen";
 
 const UNKNOWN = "정보 없음";
 
@@ -69,12 +69,31 @@ function starsignOf(birth: string | undefined): string {
   return UNKNOWN;
 }
 
+// ── 선수(당선 횟수) — "초선"/"재선"/"3선"… 그대로, 5선 이상은 묶음 ──
+function termsBand(terms: string | undefined): string {
+  const t = String(terms ?? "").trim();
+  if (!t) return UNKNOWN;
+  if (t.includes("초선")) return "초선";
+  if (t.includes("재선")) return "재선";
+  const n = Number(t.match(/(\d+)선/)?.[1]);
+  if (!n) return UNKNOWN;
+  return n >= 5 ? "5선 이상" : `${n}선`;
+}
+function termsRank(label: string): number {
+  if (label === "초선") return 1;
+  if (label === "재선") return 2;
+  if (label === "5선 이상") return 5;
+  return Number(label.match(/^(\d+)선/)?.[1]) || 99;
+}
+
 /** 레코드 → 그룹 라벨 */
 export function groupLabelOf(r: VoteRecord, dim: GroupDim, nowYear: number): string {
   if (dim === "wealth") return wealthBand(r.wealth);
   if (dim === "age") return ageBand(r.birth, nowYear);
   if (dim === "surname") return `${surnameOf(r.name)}씨`;
   if (dim === "starsign") return starsignOf(r.birth);
+  if (dim === "terms") return termsBand(r.terms);
+  if (dim === "namelen") return `이름 ${String(r.name ?? "").trim().length}글자`;
   // home: "서울 강남구" → 구 단위 그대로 (강남구 시나리오용). 미신고는 정보 없음.
   return r.home || UNKNOWN;
 }
@@ -85,6 +104,8 @@ export function groupRank(label: string, dim: GroupDim): number {
   if (dim === "wealth") return WEALTH_BANDS.indexOf(label as (typeof WEALTH_BANDS)[number]);
   if (dim === "age") return AGE_BANDS.indexOf(label as (typeof AGE_BANDS)[number]);
   if (dim === "starsign") return SIGNS.findIndex((s) => label.includes(s.sign));
+  if (dim === "terms") return termsRank(label);
+  if (dim === "namelen") return Number(label.match(/(\d+)글자/)?.[1]) || 99;
   return -1; // surname/home: 인원수순(컴포넌트에서 처리)
 }
 

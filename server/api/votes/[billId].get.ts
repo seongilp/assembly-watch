@@ -13,6 +13,7 @@ interface MemberAttrs {
   birth: string;
   wealth: number | null;
   home: string;
+  terms: string;
 }
 const ATTRS: Record<string, MemberAttrs> = (() => {
   const out: Record<string, MemberAttrs> = {};
@@ -20,9 +21,10 @@ const ATTRS: Record<string, MemberAttrs> = (() => {
   const rows = (Array.isArray(raw) ? raw : ((raw as { rows?: unknown[] }).rows ?? [])) as {
     id?: string;
     birth?: string;
+    reelection?: string;
   }[];
   for (const m of rows) {
-    if (m.id) out[m.id] = { birth: m.birth ?? "", wealth: null, home: "" };
+    if (m.id) out[m.id] = { birth: m.birth ?? "", wealth: null, home: "", terms: m.reelection ?? "" };
   }
   const w = wealthJson as unknown as {
     members?: { id: string; total: number }[];
@@ -42,7 +44,7 @@ const ATTRS: Record<string, MemberAttrs> = (() => {
 
 const withAttrs = (r: VoteRecord): VoteRecord => {
   const a = r.id ? ATTRS[r.id] : undefined;
-  return a ? { ...r, birth: a.birth, wealth: a.wealth, home: a.home } : r;
+  return a ? { ...r, birth: a.birth, wealth: a.wealth, home: a.home, terms: a.terms } : r;
 };
 
 // 베이크된 표결 매트릭스(283건×300명). 코드: Y=찬성 N=반대 B=기권 A=불참 -=무기록(비현직)

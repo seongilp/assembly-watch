@@ -112,6 +112,7 @@ export interface VoteRecord {
   birth?: string; // YYYY-MM-DD — 나이/별자리 그룹 보기용
   wealth?: number | null; // 신고 재산(억) — 재산 그룹 보기용
   home?: string; // 신고 주택 소재지 ("서울 강남구") — 거주지 그룹 보기용
+  terms?: string; // 초선/재선/3선… — 선수 그룹 보기용
 }
 
 export interface Committee {
