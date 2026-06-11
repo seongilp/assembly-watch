@@ -1,4 +1,6 @@
-onlyBuiltDependencies:
-  - "@parcel/watcher"
-  - esbuild
-  - vue-demi
+# pnpm 11 빌드스크립트 승인 — CI(strict)에서 ERR_PNPM_IGNORED_BUILDS 로 install 이 죽는 것 방지.
+# false = 빌드 스크립트 실행 안 함(기존 동작과 동일)을 '명시적으로' 선언.
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  vue-demi: false
