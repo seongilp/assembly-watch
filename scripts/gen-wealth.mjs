@@ -151,6 +151,7 @@ async function main() {
   const HOME = /아파트|주택|오피스텔|연립|다세대|빌라/;
   const homes = new Map(); // name -> [{sido, gu}]
   const guCount = {};
+  const guMembers = {}; // gu -> [{id,name,party}]
   for (const r of detailRows.slice(1)) {
     if (!isMp(r[3])) continue;
     if (String(r[5] || "").trim() !== "건물") continue;
@@ -166,6 +167,13 @@ async function main() {
     if (!homes.has(nm)) homes.set(nm, []);
     homes.get(nm).push({ sido, gu });
     guCount[gu] = (guCount[gu] || 0) + 1;
+    // 지도 버블 클릭용: 구별 보유 의원 명단 (중복 보유는 1회만)
+    const gm = byName.get(nm);
+    if (gm) {
+      const arr = (guMembers[gu] = guMembers[gu] || []);
+      if (!arr.some((x) => x.id === gm.id))
+        arr.push({ id: gm.id, name: gm.name, party: party(gm.party) });
+    }
   }
   const homesTop = Object.entries(guCount)
     .map(([gu, count]) => ({ gu, count }))
@@ -189,7 +197,7 @@ async function main() {
           { headers: { Authorization: `KakaoAK ${restKey}` } },
         );
         const doc = (await r.json())?.documents?.[0];
-        if (doc) homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x });
+        if (doc) homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x, members: guMembers[gu] ?? [] });
       } catch { /* 좌표 실패 건은 지도에서 생략 */ }
       await new Promise((res) => setTimeout(res, 60)); // rate limit 여유
     }

@@ -347,7 +347,7 @@ export interface WealthData {
   delta: WealthMember[];
   deltaLow: WealthMember[];
   homesTop: { gu: string; count: number }[];
-  homesMap: { gu: string; count: number; lat: number; lng: number }[];
+  homesMap: { gu: string; count: number; lat: number; lng: number; members: GraphMini[] }[];
   betrayal: { id: string; name: string; party: string; origin: string; homes: string[] }[];
 }
 
