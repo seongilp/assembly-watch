@@ -55,7 +55,8 @@ async function main() {
     if (buf.length < 200) throw new Error("too small");
     return buf;
   }
-  // wsrv 가 못 다루는 케이스(초대형 원본 PNG 등) → 원본 직접 받아 sharp 로컬 변환
+  // wsrv 가 못 다루는 케이스(초대형 원본 PNG 등) → 원본 직접 받아 sharp 로컬 변환.
+  // sharp 는 의존성에 없음(CI pnpm 빌드스크립트 정책 충돌) — 필요 시 `pnpm add -D sharp` 후 베이크.
   async function directOne(url) {
     const sharp = (await import("sharp")).default;
     const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } });
