@@ -55,6 +55,14 @@ async function main() {
     if (buf.length < 200) throw new Error("too small");
     return buf;
   }
+  // wsrv 가 못 다루는 케이스(초대형 원본 PNG 등) → 원본 직접 받아 sharp 로컬 변환
+  async function directOne(url) {
+    const sharp = (await import("sharp")).default;
+    const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0 (UijeongWatch build)" } });
+    if (!res.ok) throw new Error(`origin HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    return sharp(buf).resize(SIZE, SIZE, { fit: "cover", position: "top" }).webp({ quality: 80 }).toBuffer();
+  }
   async function worker() {
     while (idx < targets.length) {
       const t = targets[idx++];
@@ -68,7 +76,11 @@ async function main() {
         try {
           buf = await fetchOne(t.url);
         } catch {
-          buf = await fetchOne(t.url); // 1회 재시도
+          try {
+            buf = await fetchOne(t.url); // 1회 재시도
+          } catch {
+            buf = await directOne(t.url); // 최후: 원본 직접 + sharp
+          }
         }
         writeFileSync(dest, buf);
         ok++;
