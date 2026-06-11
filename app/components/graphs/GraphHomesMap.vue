@@ -12,7 +12,8 @@ type GuItem = WealthData["homesMap"][number];
 const mapEl = ref<HTMLElement | null>(null);
 const status = ref<"loading" | "ready" | "error">("loading");
 const active = ref<GuItem | null>(null);
-const router = useRouter();
+// 얼굴 클릭 → 이동 대신 좌상단 카드(카드 클릭 시에만 프로필 이동)
+const activeFace = ref<{ id: string; name: string; party: string; gu: string } | null>(null);
 let kakao: any = null;
 let map: any = null;
 let overlays: any[] = [];
@@ -42,12 +43,13 @@ function bubbleHtml(gu: string, count: number, isActive: boolean) {
     </div>`;
 }
 
-function faceHtml(m: { id: string; name: string; party: string }, gu: string) {
+function faceHtml(m: { id: string; name: string; party: string }, gu: string, focused: boolean) {
   const initial = (m.name || "").slice(0, 1);
   const color = partyColor(m.party);
+  const ring = focused ? "#191F28" : color;
   return `
     <div title="${m.name} · ${gu}" style="cursor:pointer;position:relative;
-                width:36px;height:36px;border-radius:50%;background:${color};border:2px solid ${color};
+                width:36px;height:36px;border-radius:50%;background:${color};border:2px solid ${ring};
                 box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
                 color:#fff;font:700 14px Pretendard,sans-serif;">
       <span style="position:absolute;">${initial}</span>
@@ -123,6 +125,7 @@ function renderBubbles() {
     el.addEventListener("click", () => {
       const wasActive = active.value?.gu === h.gu;
       active.value = wasActive ? null : h;
+      activeFace.value = null;
       if (!wasActive) {
         // 클릭한 동네로 지도 확대 → 얼굴 모드 진입 (idle 이벤트가 render 재호출)
         map.setCenter(new kakao.maps.LatLng(h.lat, h.lng));
@@ -146,10 +149,16 @@ function renderFaces() {
   if (nodes.length > 260) return renderBubbles(); // 과밀 시 버블 폴백
   declutter(nodes, 38, 38, 3);
   for (const n of nodes) {
+    const isF = activeFace.value?.id === n.m.id && activeFace.value?.gu === n.gu;
     const el = document.createElement("div");
-    el.innerHTML = faceHtml(n.m, n.gu);
-    el.addEventListener("click", () => router.push(`/members/${n.m.id}`));
-    add(el, coord(n.x + n.ox, n.y + n.oy), 1);
+    el.innerHTML = faceHtml(n.m, n.gu, isF);
+    el.addEventListener("click", () => {
+      // 프로필로 이동하지 않고 좌상단 카드로 표시 (카드 클릭 시 이동)
+      activeFace.value = isF ? null : { ...n.m, gu: n.gu };
+      active.value = null;
+      render();
+    });
+    add(el, coord(n.x + n.ox, n.y + n.oy), isF ? 20 : 1);
   }
 }
 
@@ -199,11 +208,27 @@ onBeforeUnmount(clearOverlays);
 
       <!-- 안내 / 클릭한 동네 보유 의원 패널 -->
       <div
-        v-if="status === 'ready' && !active"
+        v-if="status === 'ready' && !active && !activeFace"
         class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
       >
         확대하면 보유 의원 얼굴 · 버블 클릭하면 명단
       </div>
+
+      <!-- 얼굴 클릭 → 의원 카드 (카드를 눌러야 프로필 이동) -->
+      <NuxtLink
+        v-if="status === 'ready' && activeFace"
+        :to="`/members/${activeFace.id}`"
+        class="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-xl bg-card/95 px-3 py-2 card-shadow hover:bg-card"
+      >
+        <MemberAvatar :id="activeFace.id" :name="activeFace.name" :party="activeFace.party" :size="32" />
+        <div class="leading-tight">
+          <p class="text-[13px] font-bold text-toss-gray-900">
+            {{ activeFace.name }}
+            <span class="text-[11px] font-semibold text-toss-gray-400">{{ normalizeParty(activeFace.party) }}</span>
+          </p>
+          <p class="text-[11px] text-toss-gray-500">🏠 {{ activeFace.gu }} · 프로필 보기 →</p>
+        </div>
+      </NuxtLink>
       <div
         v-if="status === 'ready' && active"
         class="absolute left-3 top-3 z-10 w-[230px] max-h-[80%] overflow-y-auto rounded-xl bg-card/95 p-3 card-shadow"
