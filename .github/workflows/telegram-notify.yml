@@ -81,6 +81,7 @@ jobs:
             workflow_run)
               if [ "$WR_CONCL" = "success" ]; then
                 MSG="🚀 배포 성공 (${WR_BRANCH})
+          🌐 https://asm.zihado.com
           ${WR_URL}"
               else
                 MSG="❌ 배포 실패: ${WR_CONCL}

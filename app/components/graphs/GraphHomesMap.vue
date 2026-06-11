@@ -121,7 +121,13 @@ function renderBubbles() {
     const el = document.createElement("div");
     el.innerHTML = bubbleHtml(h.gu, h.count, active.value?.gu === h.gu);
     el.addEventListener("click", () => {
-      active.value = active.value?.gu === h.gu ? null : h;
+      const wasActive = active.value?.gu === h.gu;
+      active.value = wasActive ? null : h;
+      if (!wasActive) {
+        // 클릭한 동네로 지도 확대 → 얼굴 모드 진입 (idle 이벤트가 render 재호출)
+        map.setCenter(new kakao.maps.LatLng(h.lat, h.lng));
+        if (map.getLevel() > 7) map.setLevel(7);
+      }
       render();
     });
     add(el, new kakao.maps.LatLng(h.lat, h.lng), active.value?.gu === h.gu ? 1000 : h.count);
