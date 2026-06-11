@@ -144,9 +144,15 @@ function renderFaces() {
     if (!inView(h)) continue;
     const p = px(h.lat, h.lng);
     if (!p) continue;
-    // 같은 구의 의원은 좌표가 동일 → declutter 가 가로로만 밀어 일렬이 됨.
-    // 황금각 나선으로 중심 주변에 미리 흩뿌려 둥근 뭉치로 배치.
+    // 베이크된 구 경계 내 분산 좌표(pts) 우선 — 구 전체에 골고루, 1명이면 영역 가운데.
+    // pts 없는 구(복합선거구 등)는 황금각 나선으로 중심 주변에 둥글게 폴백.
     h.members.forEach((m, k) => {
+      const pt = h.pts?.[k];
+      if (pt) {
+        const pp = px(pt[0], pt[1]);
+        if (pp) nodes.push({ m, gu: h.gu, x: pp.x, y: pp.y, ox: 0, oy: 0 });
+        return;
+      }
       const r = 13 * Math.sqrt(k);
       const a = k * 2.39996; // golden angle(rad)
       nodes.push({ m, gu: h.gu, x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a), ox: 0, oy: 0 });

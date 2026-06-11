@@ -180,6 +180,165 @@ async function main() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);
 
+  // ── 주택 유형 구분 + 아파트 평수 (소유만, 전세·임차 제외) ──
+  // 부부 공동명의(같은 집이 본인·배우자 두 행)는 이름+명세 prefix 로 중복 제거.
+  const TYPE_MAP = [
+    ["아파트", /^아파트/],
+    ["단독주택", /^단독주택/],
+    ["오피스텔", /^오피스텔/],
+    ["연립·다세대", /^(연립|다세대|다가구)/],
+    ["주상복합", /^복합건물/],
+  ];
+  const typeCount = {};
+  const aptSeen = new Set();
+  const aptList = []; // {id?,name,party,pyeong,m2,gu}
+  for (const r of detailRows.slice(1)) {
+    if (!isMp(r[3])) continue;
+    if (String(r[5] || "").trim() !== "건물") continue;
+    const rel = String(r[6] || "").trim();
+    if (rel !== "본인" && rel !== "배우자") continue;
+    const kind = String(r[7] || "").trim();
+    if (/전세|임차|분양권/.test(kind)) continue; // 소유한 완성 주택만
+    const t = TYPE_MAP.find(([, re]) => re.test(kind));
+    if (!t) continue;
+    typeCount[t[0]] = (typeCount[t[0]] || 0) + 1;
+    if (t[0] !== "아파트") continue;
+    const nm = String(r[4] || "").trim();
+    const spec = String(r[8] || "");
+    const ar = spec.match(/([\d.]+)\s*㎡/);
+    if (!ar) continue;
+    const m2 = parseFloat(ar[1]);
+    if (!Number.isFinite(m2) || m2 < 10 || m2 > 400) continue;
+    // 부부 공동명의(같은 집, 지분만 다른 두 행) 중복 제거: 이름+동네+전체면적
+    const dedupe = nm + "|" + (guOf(spec) || "") + "|" + m2;
+    if (aptSeen.has(dedupe)) continue;
+    aptSeen.add(dedupe);
+    const gm = byName.get(nm);
+    aptList.push({
+      id: gm?.id ?? "", name: nm, party: gm ? party(gm.party) : "",
+      m2: Math.round(m2 * 10) / 10,
+      pyeong: Math.round(m2 * 0.3025 * 10) / 10,
+      gu: guOf(spec) || sidoOf(spec) || "",
+    });
+  }
+  const homeTypes = Object.entries(typeCount)
+    .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count);
+  // 평수 버킷
+  const BUCKETS = [
+    { label: "20평 미만", max: 20 },
+    { label: "20평대", max: 30 },
+    { label: "30평대", max: 40 },
+    { label: "40평대", max: 50 },
+    { label: "50평대", max: 60 },
+    { label: "60평 이상", max: Infinity },
+  ];
+  const aptBuckets = BUCKETS.map((b) => ({ label: b.label, count: 0 }));
+  for (const a of aptList) {
+    const i = BUCKETS.findIndex((b) => a.pyeong < b.max);
+    aptBuckets[i >= 0 ? i : BUCKETS.length - 1].count++;
+  }
+  const withId = aptList.filter((a) => a.id);
+  const apt = {
+    total: aptList.length,
+    avgPyeong: Math.round((aptList.reduce((s, a) => s + a.pyeong, 0) / Math.max(aptList.length, 1)) * 10) / 10,
+    buckets: aptBuckets,
+    largest: [...withId].sort((a, b) => b.pyeong - a.pyeong).slice(0, 5),
+    smallest: [...withId].sort((a, b) => a.pyeong - b.pyeong).slice(0, 5),
+  };
+
+  // ── 구 경계 폴리곤 내 분산 좌표 (얼굴 마커를 구 전체에 골고루) ──
+  // district-shapes(선거구 시군구 경계) 이름엔 시도가 없어("강남갑") 코드 접두사→시도를
+  // 의원 origin 으로 역산해 같은 시도 안에서만 이름 매칭(타 시도 동명 구 충돌 방지).
+  const shapes = (() => {
+    try { return JSON.parse(readFileSync(join(root, "server/assets/district-shapes.json"), "utf8")); }
+    catch { return null; }
+  })();
+  const prefixSido = {}; // 코드 앞3자리 -> 시도
+  if (shapes) {
+    for (const m of membersRaw) {
+      const sd = regionOfOrigin(m.origin);
+      if (!sd) continue;
+      for (const code of shapes.members[m.id] ?? []) {
+        const p3 = String(code).slice(0, 3);
+        prefixSido[p3] = prefixSido[p3] || sd;
+      }
+    }
+  }
+  function shapesOfGu(gu) {
+    if (!shapes) return [];
+    const [sd, ...rest] = gu.split(" ");
+    const town = rest.join("");
+    if (!town) return [];
+    const base = town.replace(/[시군구]$/, "");
+    const cands = Object.values(shapes.codes).filter((c, i) => true);
+    const entries = Object.entries(shapes.codes).filter(([code]) => prefixSido[String(code).slice(0, 3)] === sd);
+    // 타이트한 순서로 매칭: 원형명 → 원형명 시작 → base+선거구접미 → base 시작
+    const tiers = [
+      ([, c]) => c.name === town,
+      ([, c]) => c.name.startsWith(town),
+      ([, c]) => new RegExp(`^${base}(갑|을|병|정|무|기)?$`).test(c.name),
+      ([, c]) => base.length >= 2 && c.name.startsWith(base),
+    ];
+    for (const t of tiers) {
+      const hit = entries.filter(t);
+      if (hit.length) return hit.map(([, c]) => c);
+    }
+    return [];
+  }
+  // 폴리곤 내부 판정(ray casting) — rings: [[lng,lat],...][]
+  function inRings(rings, lng, lat) {
+    let inside = false;
+    for (const ring of rings) {
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const [xi, yi] = ring[i], [xj, yj] = ring[j];
+        if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+      }
+    }
+    return inside;
+  }
+  // 결정론 PRNG(재현성) + 후보 과샘플 → max-min 거리 그리디로 "골고루" n개 선별
+  function samplePoints(shapeList, n) {
+    if (!shapeList.length || n <= 0) return [];
+    let seed = 9173;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    const polys = shapeList.map((s) => s.rings);
+    for (const rings of polys)
+      for (const ring of rings)
+        for (const [x, y] of ring) {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        }
+    const cand = [];
+    let tries = 0;
+    while (cand.length < Math.max(n * 25, 60) && tries < 8000) {
+      tries++;
+      const lng = minX + rnd() * (maxX - minX);
+      const lat = minY + rnd() * (maxY - minY);
+      if (polys.some((rings) => inRings(rings, lng, lat))) cand.push([lat, lng]);
+    }
+    if (!cand.length) return [];
+    // 중심(후보 평균)에서 가장 가까운 점부터 → 1명이면 영역 가운데
+    const cy = cand.reduce((s, p) => s + p[0], 0) / cand.length;
+    const cx = cand.reduce((s, p) => s + p[1], 0) / cand.length;
+    const picked = [];
+    let first = cand.reduce((b, p) => ((p[0] - cy) ** 2 + (p[1] - cx) ** 2 < (b[0] - cy) ** 2 + (b[1] - cx) ** 2 ? p : b));
+    picked.push(first);
+    while (picked.length < n && picked.length < cand.length) {
+      let best = null, bestD = -1;
+      for (const p of cand) {
+        if (picked.includes(p)) continue;
+        let d = Infinity;
+        for (const q of picked) d = Math.min(d, (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2);
+        if (d > bestD) { bestD = d; best = p; }
+      }
+      if (!best) break;
+      picked.push(best);
+    }
+    return picked.map(([la, ln]) => [Math.round(la * 1e5) / 1e5, Math.round(ln * 1e5) / 1e5]);
+  }
+
   // 지도용: 시군구 전체를 카카오 REST 지오코딩(빌드 1회) → 좌표 베이크
   const restKey = (() => {
     if (process.env.KAKAO_REST_KEY) return process.env.KAKAO_REST_KEY;
@@ -197,7 +356,12 @@ async function main() {
           { headers: { Authorization: `KakaoAK ${restKey}` } },
         );
         const doc = (await r.json())?.documents?.[0];
-        if (doc) homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x, members: guMembers[gu] ?? [] });
+        if (doc) {
+          const mlist = guMembers[gu] ?? [];
+          // 구 경계 안에 의원 수만큼 골고루 분산된 좌표(1명이면 영역 가운데). 매칭 실패 시 빈 배열 → 클라 나선 폴백.
+          const pts = samplePoints(shapesOfGu(gu), mlist.length);
+          homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x, members: mlist, pts });
+        }
       } catch { /* 좌표 실패 건은 지도에서 생략 */ }
       await new Promise((res) => setTimeout(res, 60)); // rate limit 여유
     }
@@ -238,6 +402,8 @@ async function main() {
     homesTop,
     homesMap,
     betrayal,
+    homeTypes,
+    apt,
   });
   console.log(
     `[gen-wealth] 의원 ${rows.length} · 부동산 ${realEstate.length} · 주택보유 ${homes.size} · 동네TOP ${homesTop.length} · 배신왕 ${betrayal.length}`,

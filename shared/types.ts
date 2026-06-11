@@ -329,6 +329,15 @@ export interface PassRateMember {
   reflected: number;
 }
 
+export interface AptItem {
+  id: string;
+  name: string;
+  party: string;
+  m2: number;
+  pyeong: number;
+  gu: string;
+}
+
 /** 국회의원 재산 (정보공개센터 정제 국회공보 데이터 베이크) */
 export interface WealthMember {
   id: string;
@@ -347,7 +356,22 @@ export interface WealthData {
   delta: WealthMember[];
   deltaLow: WealthMember[];
   homesTop: { gu: string; count: number }[];
-  homesMap: { gu: string; count: number; lat: number; lng: number; members: GraphMini[] }[];
+  homesMap: {
+    gu: string;
+    count: number;
+    lat: number;
+    lng: number;
+    members: GraphMini[];
+    pts?: [number, number][]; // 구 경계 내 분산 좌표(members 와 같은 순서), 없으면 클라 나선 폴백
+  }[];
+  homeTypes: { type: string; count: number }[];
+  apt: {
+    total: number;
+    avgPyeong: number;
+    buckets: { label: string; count: number }[];
+    largest: AptItem[];
+    smallest: AptItem[];
+  };
   betrayal: { id: string; name: string; party: string; origin: string; homes: string[] }[];
 }
 

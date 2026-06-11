@@ -127,6 +127,10 @@ useHead({ title: "펀팩트 · 의정감시" });
           <RankingCard title="1년 새 재산 증가 TOP" :icon="TrendingUp" :items="deltaRank" unit="억" accent="#F04452" />
         </div>
         <GraphsGraphWealthParty :data="w" />
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <GraphsGraphHomeTypes v-if="w.homeTypes?.length" :data="w" />
+          <GraphsGraphAptSizes v-if="w.apt?.total" :data="w" />
+        </div>
         <ClientOnly>
           <GraphsGraphHomesMap v-if="w.homesMap?.length" :data="w" />
         </ClientOnly>
