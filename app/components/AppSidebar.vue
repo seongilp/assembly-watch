@@ -66,6 +66,10 @@ const palette = useCommandPalette();
           class="font-semibold text-toss-gray-500 hover:text-toss-blue"
           >열린국회정보</a
         >
+        <br />
+        <NuxtLink to="/privacy" class="font-semibold text-toss-gray-500 hover:text-toss-blue"
+          >개인정보처리방침</NuxtLink
+        >
       </p>
       <ThemeToggle />
     </div>
