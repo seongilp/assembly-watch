@@ -100,7 +100,7 @@ async function main() {
     [totalRows, kindRows, detailRows] = await Promise.all([dl(GID.total), dl(GID.byKind), dl(GID.detail)]);
   } catch (e) {
     console.warn("[gen-wealth] 시트 다운로드 실패:", e.message, existsSync(OUT) ? "— 기존 베이크 유지" : "");
-    if (!existsSync(OUT)) save({ basis: BASIS, members: [], byParty: [], realEstate: [], delta: [], homesTop: [], betrayal: [] });
+    if (!existsSync(OUT)) save({ basis: BASIS, members: [], byParty: [], realEstate: [], delta: [], homesTop: [], homesMap: [], betrayal: [] });
     return;
   }
 
@@ -172,6 +172,31 @@ async function main() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);
 
+  // 지도용: 시군구 전체를 카카오 REST 지오코딩(빌드 1회) → 좌표 베이크
+  const restKey = (() => {
+    if (process.env.KAKAO_REST_KEY) return process.env.KAKAO_REST_KEY;
+    try {
+      return readFileSync(join(root, ".env"), "utf8").match(/^KAKAO_REST_KEY=(.+)$/m)?.[1]?.trim() ?? "";
+    } catch { return ""; }
+  })();
+  const homesMap = [];
+  if (restKey) {
+    const entries = Object.entries(guCount).sort((a, b) => b[1] - a[1]);
+    for (const [gu, count] of entries) {
+      try {
+        const r = await fetch(
+          `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(gu)}`,
+          { headers: { Authorization: `KakaoAK ${restKey}` } },
+        );
+        const doc = (await r.json())?.documents?.[0];
+        if (doc) homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x });
+      } catch { /* 좌표 실패 건은 지도에서 생략 */ }
+      await new Promise((res) => setTimeout(res, 60)); // rate limit 여유
+    }
+  } else {
+    console.warn("[gen-wealth] KAKAO_REST_KEY 없음 — 지도 좌표 생략");
+  }
+
   // 배신왕: 지역구 의원인데 본인·배우자 소유 주택이 지역구 시도엔 없고 다른 시도에만 있는 경우
   const betrayal = [];
   for (const m of membersRaw) {
@@ -203,6 +228,7 @@ async function main() {
     delta: delta.slice(0, 20),
     deltaLow: delta.slice(-10).reverse(),
     homesTop,
+    homesMap,
     betrayal,
   });
   console.log(

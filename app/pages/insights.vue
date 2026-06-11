@@ -127,6 +127,9 @@ useHead({ title: "펀팩트 · 의정감시" });
           <RankingCard title="1년 새 재산 증가 TOP" :icon="TrendingUp" :items="deltaRank" unit="억" accent="#F04452" />
         </div>
         <GraphsGraphWealthParty :data="w" />
+        <ClientOnly>
+          <GraphsGraphHomesMap v-if="w.homesMap?.length" :data="w" />
+        </ClientOnly>
         <GraphsGraphHomes :data="w" />
         <p class="text-[11px] text-toss-gray-400">
           ※ {{ w.basis }} · 금액은 신고가액(억원). 자료:

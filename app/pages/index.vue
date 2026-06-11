@@ -57,7 +57,7 @@ const updatedLabel = computed(() => {
           class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-[12px] font-medium text-toss-gray-500 card-shadow"
         >
           <span class="size-1.5 rounded-full bg-toss-green animate-pulse" />
-          {{ updatedLabel }} 기준
+          데이터 {{ updatedLabel }} 기준
         </span>
       </template>
     </PageHeader>
