@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff } from "lucide-vue-next";
-import type { Insights, VoteInsights, GraphData, WealthData, InsightMember } from "#shared/types";
+import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff, Telescope } from "lucide-vue-next";
+import type { Insights, VoteInsights, GraphData, WealthData, InsightMember, VoteAnalysisTop } from "#shared/types";
 
 const route = useRoute();
 const router = useRouter();
@@ -20,15 +20,21 @@ const { data: w, execute: loadWealth } = useFetch<WealthData>("/api/wealth", {
   server: false,
   immediate: false,
 });
+const { data: va, execute: loadDiscover } = useFetch<VoteAnalysisTop>("/api/vote-analysis-top", {
+  key: "vote-analysis-top",
+  server: false,
+  immediate: false,
+});
 
-// 탭 ↔ URL 동기화 (?tab=graph|wealth) — 새로고침·공유에도 유지
-type Tab = "fun" | "graph" | "wealth";
-const initTab = (q: unknown): Tab => (q === "graph" || q === "wealth" ? q : "fun");
+// 탭 ↔ URL 동기화 (?tab=graph|wealth|discover) — 새로고침·공유에도 유지
+type Tab = "fun" | "graph" | "wealth" | "discover";
+const initTab = (q: unknown): Tab => (q === "graph" || q === "wealth" || q === "discover" ? q : "fun");
 const tab = ref<Tab>(initTab(route.query.tab));
 watch(tab, (t) => {
   router.replace({ query: { ...route.query, tab: t === "fun" ? undefined : t } });
   if (t === "graph") loadGraph();
   if (t === "wealth") loadWealth();
+  if (t === "discover") loadDiscover();
 });
 // 프리렌더 하이드레이션 직후 라우터가 실제 URL 로 동기화될 때도 잡히도록 쿼리를 직접 감시
 watch(
@@ -104,6 +110,14 @@ useSeoMeta({
       >
         <Wallet class="size-4" /> 재산
       </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-bold transition-colors"
+        :class="tab === 'discover' ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+        @click="tab = 'discover'"
+      >
+        <Telescope class="size-4" /> 발견
+      </button>
     </div>
 
     <!-- 랭킹 탭 -->
@@ -153,6 +167,14 @@ useSeoMeta({
         </div>
         <GraphsGraphSurnames :data="g" />
       </div>
+      <div v-else class="rounded-2xl bg-card card-shadow p-10 text-center text-toss-gray-400">
+        데이터를 불러오는 중…
+      </div>
+    </template>
+
+    <!-- 발견(표결의 발견) 탭 -->
+    <template v-else-if="tab === 'discover'">
+      <VoteDiscoveries v-if="va" :data="va" />
       <div v-else class="rounded-2xl bg-card card-shadow p-10 text-center text-toss-gray-400">
         데이터를 불러오는 중…
       </div>

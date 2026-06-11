@@ -234,6 +234,40 @@ export interface VoteInsights {
   quiz: { id: string; name: string; no: string }[];
 }
 
+/** 표결의 발견 — 표결별 집단 특성 분석 (server/assets/vote-analysis.json) */
+export interface VoteFactGroup {
+  label: string; // "수도권 지역구 의원"
+  yes: number;
+  no: number;
+  blank: number;
+  absent: number;
+  rate: number; // 출석 기준 찬성률 % (Y/(Y+N+B))
+}
+export interface VoteFact {
+  dim: string; // bloc|capital|wealth|wealthTop|gen|terms|sex|elect|zodiac|surname|absent|boycott|split
+  title: string; // "재산이 갈랐다"
+  text: string; // 자동 생성 문장
+  fun?: boolean; // 띠·성씨 등 재미 차원
+  score: number;
+  groups?: VoteFactGroup[]; // 미니 비교 차트용
+  rebels?: GraphMini[]; // 당내 균열 소수파 (split 전용)
+}
+export interface VoteTopPick {
+  billId: string;
+  billNo: string;
+  billName: string;
+  date: string;
+  y: number;
+  n: number;
+  b: number;
+  fact: VoteFact;
+}
+export interface VoteAnalysisTop {
+  billCount: number;
+  analyzed: number;
+  topPicks: VoteTopPick[];
+}
+
 /** 펀팩트 "데이터 그래프" 베이크 (server/assets/graph-data.json) */
 export interface GraphMini {
   id: string;

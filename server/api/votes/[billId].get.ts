@@ -1,8 +1,10 @@
-import type { VoteRecord } from "#shared/types";
+import type { VoteFact, VoteRecord } from "#shared/types";
 import photos from "../../assets/member-photos.json";
 import votedata from "../../assets/votedata.json";
+import voteAnalysis from "../../assets/vote-analysis.json";
 
 const PHOTOS = photos as Record<string, string>;
+const FACTS = (voteAnalysis as unknown as { byBill: Record<string, VoteFact[]> }).byBill;
 
 // 베이크된 표결 매트릭스(283건×300명). 코드: Y=찬성 N=반대 B=기권 A=불참 -=무기록(비현직)
 interface BakedBill {
@@ -55,6 +57,7 @@ export interface RollCallResponse {
   rows: VoteRecord[];
   totalCount: number;
   tally: { 찬성: number; 반대: number; 기권: number; 불참: number };
+  facts: VoteFact[]; // 표결의 발견 (빌드 베이크, 없으면 빈 배열)
 }
 
 const s = (v: unknown) => (v == null ? "" : String(v).trim());
@@ -93,7 +96,7 @@ function fromBaked(billId: string): RollCallResponse | null {
     procResult: b.procResult,
     date: b.date,
   };
-  return { bill, rows, totalCount: rows.length, tally };
+  return { bill, rows, totalCount: rows.length, tally, facts: FACTS[billId] ?? [] };
 }
 
 /** 베이크에 없는 의안: 라이브 API 폴백 (기존 로직) */
@@ -133,7 +136,7 @@ async function fromLive(billId: string): Promise<RollCallResponse> {
         date: s(first.VOTE_DATE),
       }
     : null;
-  return { bill, rows, totalCount: res.totalCount, tally };
+  return { bill, rows, totalCount: res.totalCount, tally, facts: FACTS[billId] ?? [] };
 }
 
 /**

@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.5.1",
   "scripts": {
-    "gen:data": "node scripts/gen-members.mjs && node scripts/gen-snapshots.mjs && node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-bills.mjs && node scripts/gen-bill-proposers.mjs && node scripts/gen-insights.mjs && node scripts/gen-districts.mjs && node scripts/gen-shapes.mjs && node scripts/gen-vote-stats.mjs && node scripts/gen-votedata.mjs && node scripts/gen-graph-data.mjs && node scripts/gen-wealth.mjs && node scripts/gen-avatars.mjs",
+    "gen:data": "node scripts/gen-members.mjs && node scripts/gen-snapshots.mjs && node scripts/gen-photos.mjs && node scripts/gen-committees.mjs && node scripts/gen-bills.mjs && node scripts/gen-bill-proposers.mjs && node scripts/gen-insights.mjs && node scripts/gen-districts.mjs && node scripts/gen-shapes.mjs && node scripts/gen-vote-stats.mjs && node scripts/gen-votedata.mjs && node scripts/gen-graph-data.mjs && node scripts/gen-wealth.mjs && node scripts/gen-vote-analysis.mjs && node scripts/gen-avatars.mjs",
     "build": "rm -rf .output .nuxt/cache node_modules/.cache && pnpm gen:data && nuxt build",
     "build:baked": "rm -rf .output .nuxt/cache node_modules/.cache && nuxt build",
     "dev": "nuxt dev --port 4191",

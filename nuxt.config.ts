@@ -148,6 +148,7 @@ export default defineNuxtConfig({
       "/api/bills": { swr: 600 },
       "/api/votes": { swr: 600 },
       "/api/votes/**": { swr: 3600 },
+      "/api/vote-analysis-top": { swr: 3600 },
       "/api/schedule": { swr: 1800 },
     },
     nitro: {
