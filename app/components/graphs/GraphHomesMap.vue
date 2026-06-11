@@ -17,6 +17,53 @@ const activeFace = ref<{ id: string; name: string; party: string; gu: string } |
 let kakao: any = null;
 let map: any = null;
 let overlays: any[] = [];
+let polygons: any[] = [];
+
+// 구 경계 레이어 (/api/shapes 지연 로드 — 선거구 지도와 동일 데이터)
+type Shapes = { codes: Record<string, { name: string; rings: [number, number][][] }> };
+let shapes: Shapes | null = null;
+let shapesLoading: Promise<void> | null = null;
+async function loadShapes() {
+  if (shapes || shapesLoading) return shapesLoading;
+  shapesLoading = $fetch<Shapes>("/api/shapes")
+    .then((d) => {
+      shapes = d;
+    })
+    .catch(() => {});
+  return shapesLoading;
+}
+function clearPolygons() {
+  polygons.forEach((p) => p.setMap(null));
+  polygons = [];
+}
+// 활성(클릭) 구의 경계 폴리곤 오버레이
+function drawBoundary(gu: string | null) {
+  clearPolygons();
+  if (!gu || !shapes) return;
+  const h = props.data.homesMap.find((x) => x.gu === gu);
+  for (const code of h?.codes ?? []) {
+    const shp = shapes.codes[code];
+    if (!shp) continue;
+    for (const ring of shp.rings) {
+      const path = ring.map(([lng, lat]) => new kakao.maps.LatLng(lat, lng));
+      const poly = new kakao.maps.Polygon({
+        path,
+        strokeWeight: 2,
+        strokeColor: "#3182F6",
+        strokeOpacity: 0.9,
+        fillColor: "#3182F6",
+        fillOpacity: 0.08,
+      });
+      poly.setMap(map);
+      polygons.push(poly);
+    }
+  }
+}
+const boundaryGu = computed(() => active.value?.gu ?? activeFace.value?.gu ?? null);
+watch(boundaryGu, async (gu) => {
+  if (gu) await loadShapes();
+  drawBoundary(gu);
+});
 
 const FACE_LEVEL = 9; // 이보다 확대되면 얼굴 마커
 const maxCount = Math.max(...props.data.homesMap.map((h) => h.count), 1);
@@ -203,7 +250,10 @@ onMounted(async () => {
     status.value = "error";
   }
 });
-onBeforeUnmount(clearOverlays);
+onBeforeUnmount(() => {
+  clearOverlays();
+  clearPolygons();
+});
 </script>
 
 <template>

@@ -271,7 +271,6 @@ async function main() {
     const town = rest.join("");
     if (!town) return [];
     const base = town.replace(/[시군구]$/, "");
-    const cands = Object.values(shapes.codes).filter((c, i) => true);
     const entries = Object.entries(shapes.codes).filter(([code]) => prefixSido[String(code).slice(0, 3)] === sd);
     // 타이트한 순서로 매칭: 원형명 → 원형명 시작 → base+선거구접미 → base 시작
     const tiers = [
@@ -282,7 +281,7 @@ async function main() {
     ];
     for (const t of tiers) {
       const hit = entries.filter(t);
-      if (hit.length) return hit.map(([, c]) => c);
+      if (hit.length) return hit; // [code, shape] 쌍 — 경계 레이어용 코드 포함
     }
     return [];
   }
@@ -359,8 +358,12 @@ async function main() {
         if (doc) {
           const mlist = guMembers[gu] ?? [];
           // 구 경계 안에 의원 수만큼 골고루 분산된 좌표(1명이면 영역 가운데). 매칭 실패 시 빈 배열 → 클라 나선 폴백.
-          const pts = samplePoints(shapesOfGu(gu), mlist.length);
-          homesMap.push({ gu, count, lat: +doc.y, lng: +doc.x, members: mlist, pts });
+          const matched = shapesOfGu(gu);
+          const pts = samplePoints(matched.map(([, c]) => c), mlist.length);
+          homesMap.push({
+            gu, count, lat: +doc.y, lng: +doc.x, members: mlist, pts,
+            codes: matched.map(([code]) => code), // 경계 레이어(/api/shapes 의 codes 키)
+          });
         }
       } catch { /* 좌표 실패 건은 지도에서 생략 */ }
       await new Promise((res) => setTimeout(res, 60)); // rate limit 여유

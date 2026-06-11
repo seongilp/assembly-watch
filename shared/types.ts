@@ -363,6 +363,7 @@ export interface WealthData {
     lng: number;
     members: GraphMini[];
     pts?: [number, number][]; // 구 경계 내 분산 좌표(members 와 같은 순서), 없으면 클라 나선 폴백
+    codes?: string[]; // 구 경계 폴리곤(/api/shapes codes 키) — 경계 레이어용
   }[];
   homeTypes: { type: string; count: number }[];
   apt: {

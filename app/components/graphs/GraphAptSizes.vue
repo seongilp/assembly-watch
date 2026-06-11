@@ -17,13 +17,13 @@ const maxCount = computed(() => Math.max(...props.data.apt.buckets.map((b) => b.
       <b class="text-toss-gray-700">{{ data.apt.avgPyeong }}평</b>
     </p>
 
-    <!-- 평형 히스토그램 -->
-    <div class="mt-4 flex items-end gap-2 h-32">
-      <div v-for="b in data.apt.buckets" :key="b.label" class="flex-1 flex flex-col items-center gap-1">
+    <!-- 평형 히스토그램 (막대 높이는 px — %는 부모 높이 auto 라 붕괴) -->
+    <div class="mt-4 flex items-end gap-2">
+      <div v-for="b in data.apt.buckets" :key="b.label" class="flex-1 flex flex-col items-center justify-end gap-1">
         <span class="text-[11px] font-extrabold tabular-nums text-toss-blue">{{ b.count }}</span>
         <div
           class="w-full rounded-t-md bg-gradient-to-t from-toss-blue to-[#7C3AED]"
-          :style="{ height: Math.max((b.count / maxCount) * 100, 3) + '%' }"
+          :style="{ height: Math.max((b.count / maxCount) * 96, 4) + 'px' }"
         />
         <span class="text-[10px] text-toss-gray-400 whitespace-nowrap">{{ b.label }}</span>
       </div>
