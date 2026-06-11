@@ -126,7 +126,7 @@ async function main() {
   const rebel = [...rebelCount.entries()]
     .map(([id, count]) => ({ ...(byId.get(id) ?? { id }), count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 20);
+    .slice(0, 50);
 
   // C) 정당 결속도 (Rice index: |Y-N|/(Y+N) 안건평균, Y/N 합 5+ 안건만)
   const partyAgg = {};

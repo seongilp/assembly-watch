@@ -169,7 +169,7 @@ async function main() {
     .map(([id, count]) => ({ ...(byId.get(id) ?? { id, name: "?", party: "", origin: "", photo: "" }), count }))
     .filter((x) => x.name !== "?")
     .sort((a, b) => b.count - a.count)
-    .slice(0, 15);
+    .slice(0, 50);
 
   // 가장 적게 발의한 의원 (대표발의 0건 포함 — 전체 의원 기준 오름차순)
   const leastProposed = members
@@ -178,7 +178,7 @@ async function main() {
       count: proposeCount.get(m.id) ?? 0,
     }))
     .sort((a, b) => a.count - b.count || a.name.localeCompare(b.name))
-    .slice(0, 15);
+    .slice(0, 50);
 
   const voteList = [...tally.entries()].map(([name, t]) => ({ name, ...t }));
   const top = (sel) =>
@@ -186,7 +186,7 @@ async function main() {
       .map((t) => enrich(t.name, { count: sel(t), total: t.total }))
       .filter((x) => x.id && x.count > 0)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
+      .slice(0, 50);
 
   const attendance = voteList
     .map((t) => enrich(t.name, { rate: t.total ? (t.total - t.absent) / t.total : 0, total: t.total, absent: t.absent }))
@@ -195,7 +195,7 @@ async function main() {
   const terms = [...members]
     .filter((m) => m.term > 0)
     .sort((a, b) => b.term - a.term)
-    .slice(0, 15)
+    .slice(0, 50)
     .map((m) => ({ ...m, count: m.term }));
 
   save({
@@ -208,7 +208,7 @@ async function main() {
     yes: top((t) => t.yes),
     no: top((t) => t.no),
     blank: top((t) => t.blank),
-    attendanceLow: [...attendance].sort((a, b) => a.rate - b.rate).slice(0, 15),
+    attendanceLow: [...attendance].sort((a, b) => a.rate - b.rate).slice(0, 50),
   });
   console.log(`[gen-insights] 발의 ${proposed.length} · 표결 ${votedBills.length}건 집계 완료`);
 }
