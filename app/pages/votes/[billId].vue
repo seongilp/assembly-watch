@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowLeft, ExternalLink, Search } from "lucide-vue-next";
 import { normalizeParty } from "~/lib/party";
-import { formatDateTime, voteStyle } from "~/lib/format";
+import { formatDateTime, voteStyle, resultFill } from "~/lib/format";
 
 const partyColor = usePartyColor();
 
@@ -142,7 +142,7 @@ useHead({ title: () => `${data.value?.bill?.billName ?? "표결"} · 의정감�
             class="rounded-full px-3.5 py-1.5 text-[13px] font-bold transition-colors"
             :style="
               resultFilter === r && r !== '전체'
-                ? { color: '#fff', backgroundColor: voteStyle(r).fg }
+                ? { color: '#fff', backgroundColor: resultFill(r) }
                 : {}
             "
             :class="

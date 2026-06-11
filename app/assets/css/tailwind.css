@@ -48,6 +48,22 @@
   --border: #e5e8eb;
   --input: #e5e8eb;
   --ring: #3182f6;
+
+  /* 표결/처리결과 뱃지 — 라이트: 파스텔 배경 + 진한 글자 */
+  --vote-yes-fg: #1b64da;
+  --vote-yes-bg: #e8f3ff;
+  --vote-no-fg: #d63a45;
+  --vote-no-bg: #fdecee;
+  --vote-blank-fg: #8b5a00;
+  --vote-blank-bg: #fff4e0;
+  --vote-absent-fg: #6b7684;
+  --vote-absent-bg: #f2f4f6;
+  --proc-pass-fg: #00857a;
+  --proc-pass-bg: #e3f7f2;
+  --proc-alt-fg: #7c3aed;
+  --proc-alt-bg: #f3ecfe;
+  --proc-drop-fg: #8b95a1;
+  --proc-drop-bg: #f2f4f6;
 }
 
 /* 다크 모드 — toss-gray 스케일을 반전시켜 대부분의 색이 자동 적응 */
@@ -84,6 +100,22 @@
   --border: #2c313a;
   --input: #2c313a;
   --ring: #4a93ff;
+
+  /* 표결/처리결과 뱃지 — 다크: 슬레이트 톤 반투명 배경 + 밝은 글자 */
+  --vote-yes-fg: #8fc0ff;
+  --vote-yes-bg: rgba(74, 147, 255, 0.16);
+  --vote-no-fg: #f58e98;
+  --vote-no-bg: rgba(240, 68, 82, 0.16);
+  --vote-blank-fg: #f5c97b;
+  --vote-blank-bg: rgba(255, 149, 0, 0.14);
+  --vote-absent-fg: #94a0ad;
+  --vote-absent-bg: rgba(148, 163, 184, 0.12);
+  --proc-pass-fg: #5fd4c4;
+  --proc-pass-bg: rgba(0, 181, 165, 0.14);
+  --proc-alt-fg: #c4a6f8;
+  --proc-alt-bg: rgba(124, 58, 237, 0.18);
+  --proc-drop-fg: #94a0ad;
+  --proc-drop-bg: rgba(148, 163, 184, 0.12);
 }
 
 @theme inline {

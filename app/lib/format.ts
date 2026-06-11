@@ -47,26 +47,26 @@ export function resultFill(result: string): string {
   return "#B0B8C1"; // 불참/기타
 }
 
-/** 표결 결과 → 색상/배경 */
+/** 표결 결과 → 색상/배경 (CSS 변수 — 다크 모드에서 슬레이트 톤으로 자동 전환) */
 export function voteStyle(result: string): { fg: string; bg: string } {
-  if (result.includes("찬성")) return { fg: "#1B64DA", bg: "#E8F3FF" };
-  if (result.includes("반대")) return { fg: "#D63A45", bg: "#FDECEE" };
-  if (result.includes("기권")) return { fg: "#8B5A00", bg: "#FFF4E0" };
-  return { fg: "#6B7684", bg: "#F2F4F6" }; // 불참/기타
+  if (result.includes("찬성")) return { fg: "var(--vote-yes-fg)", bg: "var(--vote-yes-bg)" };
+  if (result.includes("반대")) return { fg: "var(--vote-no-fg)", bg: "var(--vote-no-bg)" };
+  if (result.includes("기권")) return { fg: "var(--vote-blank-fg)", bg: "var(--vote-blank-bg)" };
+  return { fg: "var(--vote-absent-fg)", bg: "var(--vote-absent-bg)" }; // 불참/기타
 }
 
-/** 의안 처리결과 → 색상/배경 */
+/** 의안 처리결과 → 색상/배경 (CSS 변수 — 다크 모드 자동 전환) */
 export function procStyle(result: string): { fg: string; bg: string } {
-  if (!result) return { fg: "#6B7684", bg: "#F2F4F6" };
+  if (!result) return { fg: "var(--vote-absent-fg)", bg: "var(--vote-absent-bg)" };
   if (result.includes("가결") || result.includes("통과") || result.includes("원안"))
-    return { fg: "#00857A", bg: "#E3F7F2" };
+    return { fg: "var(--proc-pass-fg)", bg: "var(--proc-pass-bg)" };
   if (result.includes("부결") || result.includes("폐기"))
-    return { fg: "#D63A45", bg: "#FDECEE" };
+    return { fg: "var(--vote-no-fg)", bg: "var(--vote-no-bg)" };
   if (result.includes("철회") || result.includes("반려"))
-    return { fg: "#8B95A1", bg: "#F2F4F6" };
+    return { fg: "var(--proc-drop-fg)", bg: "var(--proc-drop-bg)" };
   if (result.includes("대안"))
-    return { fg: "#7C3AED", bg: "#F3ECFE" };
-  return { fg: "#1B64DA", bg: "#E8F3FF" };
+    return { fg: "var(--proc-alt-fg)", bg: "var(--proc-alt-bg)" };
+  return { fg: "var(--vote-yes-fg)", bg: "var(--vote-yes-bg)" };
 }
 
 /** 2글자 이름을 3글자 폭에 맞춰 정렬 — 뒤에 전각 공백(U+3000) 1칸을 끼워 명단 열을 균일하게 */
