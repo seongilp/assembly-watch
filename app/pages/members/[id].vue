@@ -32,15 +32,23 @@ const { data, pending } = await useFetch<MemberDetail>(
 
 const member = computed(() => data.value?.member ?? undefined);
 
+// 공동 1위도 칭호 부여 — 1위와 수치가 같은 모든 의원이 왕
+const isTop = (arr?: { id: string; count?: number; rate?: number }[]) => {
+  const top = arr?.[0];
+  if (!top) return false;
+  const v = top.count ?? top.rate;
+  return arr!.some((m) => m.id === id.value && (m.count ?? m.rate) === v);
+};
+
 const titles = computed(() => {
   const t: string[] = [];
   const a = insights.value;
-  if (a?.proposed?.[0]?.id === id.value) t.push("발의왕");
-  if (vinsights.value?.rebel?.[0]?.id === id.value) t.push("소신왕");
-  if (a?.yes?.[0]?.id === id.value) t.push("찬성왕");
-  if (a?.no?.[0]?.id === id.value) t.push("반대왕");
-  if (a?.blank?.[0]?.id === id.value) t.push("기권왕");
-  if (a?.absent?.[0]?.id === id.value) t.push("불참왕");
+  if (isTop(a?.proposed)) t.push("발의왕");
+  if (isTop(vinsights.value?.rebel)) t.push("소신왕");
+  if (isTop(a?.yes)) t.push("찬성왕");
+  if (isTop(a?.no)) t.push("반대왕");
+  if (isTop(a?.blank)) t.push("기권왕");
+  if (isTop(a?.absent)) t.push("불참왕");
   return t;
 });
 const bills = computed(() => ({ rows: data.value?.bills ?? [] }));

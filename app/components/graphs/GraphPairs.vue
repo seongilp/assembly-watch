@@ -12,9 +12,20 @@ const tabs = [
 ] as const;
 const tab = ref<(typeof tabs)[number]["key"]>("best");
 
-const list = computed<GraphPair[]>(() =>
-  tab.value === "best" ? props.data.bestPairs : tab.value === "worst" ? props.data.worstPairs : props.data.crossBest,
-);
+// 공동 순위: 일치율이 같으면 같은 순위 (1,1,3…)
+const list = computed(() => {
+  const pairs: GraphPair[] =
+    tab.value === "best" ? props.data.bestPairs : tab.value === "worst" ? props.data.worstPairs : props.data.crossBest;
+  let rank = 0;
+  let prev: number | undefined;
+  return pairs.map((p, i) => {
+    if (prev === undefined || p.rate !== prev) {
+      rank = i + 1;
+      prev = p.rate;
+    }
+    return { p, rank };
+  });
+});
 const accent = computed(() => tabs.find((t) => t.key === tab.value)!.accent);
 </script>
 
@@ -44,11 +55,11 @@ const accent = computed(() => tabs.find((t) => t.key === tab.value)!.accent);
 
     <ul class="mt-3 space-y-2">
       <li
-        v-for="(p, i) in list"
+        v-for="{ p, rank } in list"
         :key="p.a.id + p.b.id"
         class="flex items-center gap-3 rounded-xl bg-toss-gray-50 px-3 py-2.5"
       >
-        <span class="text-[12px] font-extrabold tabular-nums w-4 shrink-0" :style="{ color: accent }">{{ i + 1 }}</span>
+        <span class="text-[12px] font-extrabold tabular-nums w-4 shrink-0" :style="{ color: accent }">{{ rank }}</span>
         <NuxtLink :to="`/members/${p.a.id}`" class="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80">
           <MemberAvatar :id="p.a.id" :name="p.a.name" :party="p.a.party" :size="34" />
           <div class="min-w-0">
