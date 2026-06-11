@@ -144,7 +144,13 @@ function renderFaces() {
     if (!inView(h)) continue;
     const p = px(h.lat, h.lng);
     if (!p) continue;
-    for (const m of h.members) nodes.push({ m, gu: h.gu, x: p.x, y: p.y, ox: 0, oy: 0 });
+    // 같은 구의 의원은 좌표가 동일 → declutter 가 가로로만 밀어 일렬이 됨.
+    // 황금각 나선으로 중심 주변에 미리 흩뿌려 둥근 뭉치로 배치.
+    h.members.forEach((m, k) => {
+      const r = 13 * Math.sqrt(k);
+      const a = k * 2.39996; // golden angle(rad)
+      nodes.push({ m, gu: h.gu, x: p.x + r * Math.cos(a), y: p.y + r * Math.sin(a), ox: 0, oy: 0 });
+    });
   }
   if (nodes.length > 260) return renderBubbles(); // 과밀 시 버블 폴백
   declutter(nodes, 38, 38, 3);
