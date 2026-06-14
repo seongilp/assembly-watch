@@ -32,7 +32,7 @@ const maxCount = computed(() => Math.max(...props.data.surnames.map((s) => s.cou
               <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :size="22" />
             </NuxtLink>
           </div>
-          <GraphsGraphGroupStats :stats="s.stats" />
+          <GraphsGraphGroupStats :stats="s.stats" :badges="s.badges" />
         </div>
       </li>
     </ul>

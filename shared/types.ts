@@ -278,6 +278,10 @@ export interface GraphMini {
   name: string;
   party: string;
 }
+// 그룹 뱃지 — 차원 내 지표 1위(극단값) 또는 정당 쏠림
+export type GroupBadge =
+  | { type: "wealth" | "old" | "young" | "women" | "propose" | "attend" }
+  | { type: "skew"; party: string };
 // 띠·별자리·성씨 그룹별 집단 특성 (전 구성원 기준 평균)
 export interface GroupStats {
   n: number; // 그룹 인원수
@@ -332,8 +336,8 @@ export interface GraphData {
     buckets: { term: string; count: number }[];
     veterans: { id: string; name: string; party: string; reelection: string }[];
   };
-  zodiac: { zodiac: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
-  surnames: { surname: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
+  zodiac: { zodiac: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
+  surnames: { surname: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
   regions: {
     region: string;
     total: number;
@@ -359,7 +363,11 @@ export interface GraphData {
     total: number;
     parties: { party: string; count: number }[];
   }[];
-  starsigns: { sign: string; emoji: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
+  starsigns: { sign: string; emoji: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
+  pyeong: {
+    total: number;
+    buckets: { label: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
+  };
   birthdays: { id: string; name: string; party: string; md: string }[];
   passRate: {
     best: PassRateMember[];

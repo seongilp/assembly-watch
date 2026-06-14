@@ -43,7 +43,7 @@ const sorted = computed(() => [...props.data.zodiac].sort((a, b) => b.count - a.
             <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :size="22" />
           </NuxtLink>
         </div>
-        <GraphsGraphGroupStats :stats="z.stats" />
+        <GraphsGraphGroupStats :stats="z.stats" :badges="z.badges" />
       </div>
     </div>
   </section>

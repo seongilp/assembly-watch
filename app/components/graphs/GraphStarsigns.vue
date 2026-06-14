@@ -34,7 +34,7 @@ const sorted = computed(() => [...props.data.starsigns].sort((a, b) => b.count -
             <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :size="22" />
           </NuxtLink>
         </div>
-        <GraphsGraphGroupStats :stats="s.stats" accent="#7C3AED" />
+        <GraphsGraphGroupStats :stats="s.stats" :badges="s.badges" accent="#7C3AED" />
       </div>
     </div>
   </section>

@@ -467,6 +467,73 @@ const starsigns = SIGNS.map((s) => ({
   stats: statOf((signMembers[s.sign] || []).map((m) => m.id)),
 }));
 
+// ── 평수로 보는 국회 (소유 아파트 평수 구간별) ──
+const PYEONG_BUCKETS = [
+  { label: "20평 미만", test: (p) => p < 20 },
+  { label: "20평대", test: (p) => p >= 20 && p < 30 },
+  { label: "30평대", test: (p) => p >= 30 && p < 40 },
+  { label: "40평대", test: (p) => p >= 40 && p < 50 },
+  { label: "50평대", test: (p) => p >= 50 && p < 60 },
+  { label: "60평 이상", test: (p) => p >= 60 },
+];
+const pyeongGroups = PYEONG_BUCKETS.map((b) => ({ label: b.label, ids: [] }));
+for (const [id, pyeong] of pyeongById) {
+  const i = PYEONG_BUCKETS.findIndex((b) => b.test(pyeong));
+  if (i < 0) continue;
+  pyeongGroups[i].ids.push(id);
+}
+const pyeong = pyeongGroups.map((g) => ({
+  label: g.label,
+  count: g.ids.length,
+  members: g.ids.map((id) => { const p = profileById.get(id); return { id, name: p?.name || "?", party: p?.party || "무소속" }; }).slice(0, 12),
+  stats: statOf(g.ids),
+}));
+const pyeongTotal = pyeongGroups.reduce((s, g) => s + g.ids.length, 0);
+
+// ── 극단값 자동 하이라이트 + 정당 쏠림 뱃지 ──
+// 각 차원(띠·별자리·성씨·평수) 내에서 지표 1위 그룹 + 한 정당 쏠림(≥55%)에 뱃지.
+// 전체 의석 비율(baseline) — 그룹의 "쏠림"은 이 기준선 대비 과대표로 판정
+const baseTotal = allProfiles.length;
+const baseCnt = {};
+for (const p of allProfiles) baseCnt[p.party] = (baseCnt[p.party] || 0) + 1;
+const baseShare = (party) => (baseCnt[party] || 0) / baseTotal;
+function assignBadges(groups, { minN = 10, superlatives = true } = {}) {
+  for (const g of groups) g.badges = [];
+  const elig = groups.filter((g) => g.stats && g.stats.n >= minN);
+  const leader = (sel, dir = "max") => {
+    let best = null;
+    for (const g of elig) {
+      const v = sel(g.stats);
+      if (v == null) continue;
+      if (!best || (dir === "max" ? v > best.v : v < best.v)) best = { g, v };
+    }
+    return best?.g;
+  };
+  const tag = (g, badge) => { if (g) g.badges.push(badge); };
+  if (superlatives) {
+    tag(leader((s) => s.avgWealth), { type: "wealth" });
+    tag(leader((s) => s.avgAge), { type: "old" });
+    tag(leader((s) => s.avgAge, "min"), { type: "young" });
+    tag(leader((s) => s.womenPct), { type: "women" });
+    tag(leader((s) => s.avgPropose), { type: "propose" });
+    tag(leader((s) => s.avgAttend), { type: "attend" });
+  }
+  // 정당 쏠림: 전체 의석 비율 대비 +15%p 이상 과대표된 정당(최소 3명)
+  for (const g of elig) {
+    let best = null;
+    for (const pp of g.stats.parties) {
+      if (pp.count < 3) continue;
+      const delta = pp.count / g.stats.n - baseShare(pp.party);
+      if (!best || delta > best.delta) best = { party: pp.party, delta };
+    }
+    if (best && best.delta >= 0.15) tag(g, { type: "skew", party: best.party });
+  }
+}
+assignBadges(zodiacStats);
+assignBadges(starsigns);
+assignBadges(surnameStats, { minN: 8 });
+assignBadges(pyeong, { minN: 5, superlatives: false });
+
 // ── 생일 (월-일만 베이크 → 클라가 오늘과 매칭) ──
 const birthdays = membersRaw
   .map((m) => {
@@ -548,6 +615,7 @@ const out = {
   partyAge,
   generations,
   starsigns,
+  pyeong: { total: pyeongTotal, buckets: pyeong },
   birthdays,
   passRate,
 };

@@ -166,6 +166,7 @@ useSeoMeta({
           <GraphsGraphStarsigns :data="g" />
         </div>
         <GraphsGraphSurnames :data="g" />
+        <GraphsGraphPyeong :data="g" />
       </div>
       <div v-else class="rounded-2xl bg-card card-shadow p-10 text-center text-toss-gray-400">
         데이터를 불러오는 중…

@@ -1,12 +1,30 @@
 <script setup lang="ts">
 import { ChevronDown } from "lucide-vue-next";
-import type { GroupStats } from "#shared/types";
+import type { GroupStats, GroupBadge } from "#shared/types";
 import { partyColor, partyShort } from "~/lib/party";
 
 const props = defineProps<{
   stats: GroupStats | null;
+  badges?: GroupBadge[];
   accent?: string; // 막대/강조색 (기본 토스 블루)
 }>();
+
+// 극단값 뱃지 메타 (쏠림은 정당별로 따로 처리)
+const BADGE_META: Record<string, { icon: string; text: string; color: string }> = {
+  wealth: { icon: "💰", text: "재산 1위", color: "#F59E0B" },
+  old: { icon: "👴", text: "최고령", color: "#A16207" },
+  young: { icon: "👶", text: "최연소", color: "#3182F6" },
+  women: { icon: "👩", text: "여풍 1위", color: "#EC4899" },
+  propose: { icon: "📜", text: "발의왕", color: "#8B5CF6" },
+  attend: { icon: "🙋", text: "출석왕", color: "#10B981" },
+};
+const pills = computed(() =>
+  (props.badges ?? []).map((b) =>
+    b.type === "skew"
+      ? { key: "skew-" + b.party, icon: "", text: partyShort(b.party) + " 쏠림", color: partyColor(b.party) }
+      : { key: b.type, ...BADGE_META[b.type] },
+  ).filter((p) => p.text),
+);
 
 const open = ref(false);
 const accent = computed(() => props.accent || "#3182F6");
@@ -40,6 +58,18 @@ const fmt = (v: number | null | undefined) => (v == null ? "—" : v);
 
 <template>
   <div v-if="stats" class="mt-2 pt-2 border-t border-toss-gray-200/70">
+    <!-- 극단값/쏠림 뱃지 -->
+    <div v-if="pills.length" class="mb-1.5 flex flex-wrap gap-1">
+      <span
+        v-for="p in pills"
+        :key="p.key"
+        class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none"
+        :style="{ color: p.color, background: p.color + '1f' }"
+      >
+        <span v-if="p.icon">{{ p.icon }}</span>{{ p.text }}
+      </span>
+    </div>
+
     <!-- 상시 노출: 핵심 3종 (재산·나이·여성) + 펼침 토글 -->
     <button
       type="button"
