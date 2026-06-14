@@ -144,6 +144,7 @@ useSeoMeta({
     <!-- 데이터 그래프 탭 -->
     <template v-else-if="tab === 'graph'">
       <div v-if="g" class="space-y-4">
+        <GraphsGraphFindings :data="g" />
         <GraphsGraphPoliticalMap :data="g" />
         <GraphsGraphPairs :data="g" />
         <GraphsGraphAgeSwarm :data="g" />
@@ -167,6 +168,8 @@ useSeoMeta({
         </div>
         <GraphsGraphSurnames :data="g" />
         <GraphsGraphPyeong :data="g" />
+        <GraphsGraphWealthBands :data="g" />
+        <GraphsGraphResidence :data="g" />
       </div>
       <div v-else class="rounded-2xl bg-card card-shadow p-10 text-center text-toss-gray-400">
         데이터를 불러오는 중…

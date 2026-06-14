@@ -534,6 +534,83 @@ assignBadges(starsigns);
 assignBadges(surnameStats, { minN: 8 });
 assignBadges(pyeong, { minN: 5, superlatives: false });
 
+// ── 재산 구간으로 보는 국회 ──
+const WEALTH_BANDS = [
+  { label: "10억 미만", test: (w) => w < 10 },
+  { label: "10~30억", test: (w) => w >= 10 && w < 30 },
+  { label: "30~50억", test: (w) => w >= 30 && w < 50 },
+  { label: "50~100억", test: (w) => w >= 50 && w < 100 },
+  { label: "100억 이상", test: (w) => w >= 100 },
+];
+const wbGroups = WEALTH_BANDS.map((b) => ({ label: b.label, ids: [] }));
+for (const [id, w] of wealthById) {
+  const i = WEALTH_BANDS.findIndex((b) => b.test(w));
+  if (i < 0) continue;
+  wbGroups[i].ids.push(id);
+}
+const wealthBands = wbGroups.map((g) => ({
+  label: g.label,
+  count: g.ids.length,
+  members: g.ids.map((id) => { const p = profileById.get(id); return { id, name: p?.name || "?", party: p?.party || "무소속" }; }).slice(0, 12),
+  stats: statOf(g.ids),
+}));
+const wealthBandTotal = wbGroups.reduce((s, g) => s + g.ids.length, 0);
+assignBadges(wealthBands, { minN: 5, superlatives: false });
+
+// ── 사는 동네로 보는 국회 (거주 구별 집단 특성, 상위 12개 구) ──
+const homesRaw = wealthData.homesMap || [];
+const homes = homesRaw
+  .filter((h) => h.count >= 4 && !String(h.gu || "").includes("비례"))
+  .map((h) => {
+    const ids = (h.members || []).map((m) => m.id);
+    return {
+      gu: h.gu,
+      count: ids.length,
+      members: ids.map((id) => { const p = profileById.get(id); return { id, name: p?.name || "?", party: p?.party || "무소속" }; }).slice(0, 12),
+      stats: statOf(ids),
+    };
+  })
+  .sort((a, b) => b.count - a.count)
+  .slice(0, 12);
+assignBadges(homes, { minN: 4 });
+
+// ── 자동 "발견 요약" — 차원 간 가장 펀치라인 있는 사실들 ──
+const ZEMOJI = { 쥐: "🐭", 소: "🐮", 호랑이: "🐯", 토끼: "🐰", 용: "🐲", 뱀: "🐍", 말: "🐴", 양: "🐑", 원숭이: "🐵", 닭: "🐔", 개: "🐶", 돼지: "🐷" };
+const pickMax = (arr, sel, minN = 10) => arr.filter((g) => g.stats && g.stats.n >= minN).reduce((a, g) => { const v = sel(g.stats); return v != null && (!a || v > a.v) ? { g, v } : a; }, null);
+const pickMin = (arr, sel, minN = 10) => arr.filter((g) => g.stats && g.stats.n >= minN).reduce((a, g) => { const v = sel(g.stats); return v != null && (!a || v < a.v) ? { g, v } : a; }, null);
+const discoveries = [];
+const D = (icon, text) => discoveries.push({ icon, text });
+// 집 클수록 국힘
+const bigHome = pyeong.find((b) => b.label === "60평 이상");
+if (bigHome?.stats?.parties?.length) {
+  const k = bigHome.stats.parties[0];
+  D("🏠", `집 클수록 국힘 — 60평 이상 ${bigHome.stats.n}명 중 ${k.count}명이 ${k.party}, 평균 재산 ${bigHome.stats.avgWealth}억`);
+}
+// 재산 격차 (평수 최대 vs 최소)
+const small = pyeong.find((b) => b.label === "20평 미만");
+if (small?.stats?.avgWealth != null && bigHome?.stats?.avgWealth != null) {
+  const x = Math.round((bigHome.stats.avgWealth / Math.max(small.stats.avgWealth, 0.1)) * 10) / 10;
+  D("💸", `같은 아파트라도 평수 따라 재산 ${x}배 차 — 60평+ ${bigHome.stats.avgWealth}억 vs 20평 미만 ${small.stats.avgWealth}억`);
+}
+// 재산 1위 띠
+const rz = pickMax(zodiacStats, (s) => s.avgWealth);
+if (rz) D(ZEMOJI[rz.g.zodiac] || "🧧", `제일 부자 띠는 ${rz.g.zodiac}띠 — 평균 ${rz.v}억`);
+// 여풍 1위
+const wz = pickMax([...zodiacStats, ...starsigns], (s) => s.womenPct);
+if (wz) { const nm = wz.g.zodiac ? wz.g.zodiac + "띠" : wz.g.sign; D("👩", `여성 비율 1위는 ${nm} — ${wz.v}%`); }
+// 발의왕 띠
+const pz = pickMax(zodiacStats, (s) => s.avgPropose);
+if (pz) D("📜", `법안 발의왕 띠는 ${pz.g.zodiac}띠 — 1인당 평균 ${pz.v}건`);
+// 최연소/최고령 별자리
+const yo = pickMin(starsigns, (s) => s.avgAge);
+if (yo) D(yo.g.emoji || "👶", `가장 젊은 별자리는 ${yo.g.sign} — 평균 ${yo.v}세`);
+// 성씨 쏠림
+const skewSurname = surnameStats.find((s) => s.badges?.some((b) => b.type === "skew"));
+if (skewSurname) { const sk = skewSurname.badges.find((b) => b.type === "skew"); D("👥", `${skewSurname.surname}씨는 유독 ${sk.party} — ${skewSurname.count}명 중 ${skewSurname.stats.parties[0].count}명`); }
+// 부자 동네
+const richHome = pickMax(homes, (s) => s.avgWealth, 4);
+if (richHome) D("🏙️", `가장 부유한 동네는 ${richHome.g.gu} — 거주 의원 평균 ${richHome.v}억`);
+
 // ── 생일 (월-일만 베이크 → 클라가 오늘과 매칭) ──
 const birthdays = membersRaw
   .map((m) => {
@@ -616,6 +693,9 @@ const out = {
   generations,
   starsigns,
   pyeong: { total: pyeongTotal, buckets: pyeong },
+  wealthBands: { total: wealthBandTotal, buckets: wealthBands },
+  homes,
+  discoveries,
   birthdays,
   passRate,
 };

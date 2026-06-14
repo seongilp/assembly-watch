@@ -368,6 +368,12 @@ export interface GraphData {
     total: number;
     buckets: { label: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
   };
+  wealthBands: {
+    total: number;
+    buckets: { label: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
+  };
+  homes: { gu: string; count: number; members: GraphMini[]; stats: GroupStats | null; badges: GroupBadge[] }[];
+  discoveries: { icon: string; text: string }[];
   birthdays: { id: string; name: string; party: string; md: string }[];
   passRate: {
     best: PassRateMember[];
