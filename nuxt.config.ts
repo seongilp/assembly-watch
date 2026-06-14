@@ -150,6 +150,17 @@ export default defineNuxtConfig({
       "/api/votes/**": { swr: 3600 },
       "/api/vote-analysis-top": { swr: 3600 },
       "/api/schedule": { swr: 1800 },
+      // 베이크된 정적 JSON(재배포 시 KV 퍼지) — 콜드 Worker p99 스파이크 제거 위해
+      // 엣지 SWR 로 캐시 직배. 데이터는 배포 때만 바뀌므로 길게 잡는다.
+      "/api/graph": { swr: 86400 },
+      "/api/insights": { swr: 86400 },
+      "/api/wealth": { swr: 86400 },
+      "/api/votedata": { swr: 86400 },
+      "/api/vote-insights": { swr: 86400 },
+      "/api/vote-stats": { swr: 86400 },
+      "/api/districts": { swr: 86400 },
+      "/api/shapes": { swr: 86400 },
+      "/api/bills-recent": { swr: 3600 },
     },
     nitro: {
       storage: {
