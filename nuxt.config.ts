@@ -112,6 +112,18 @@ export default defineNuxtConfig({
         ...voteRoutes(),
         // 위원회 상세(157개)는 일정·회의록이 동적(라이브 API)이라 프리렌더 제외 →
         // 런타임 SSR(routeRules /committees/** swr). 핵심정보는 committees.json 베이크.
+        // 베이크 정적 JSON API → 정적 파일로 프리렌더 = CF 엣지 직배(cf=HIT, Worker 미경유).
+        // total ≈ RTT 로 떨어져 p99 50ms 이하. 데이터는 배포 때만 바뀌므로 안전.
+        "/api/graph",
+        "/api/insights",
+        "/api/wealth",
+        "/api/votedata",
+        "/api/vote-insights",
+        "/api/vote-stats",
+        "/api/stats",
+        "/api/districts",
+        "/api/shapes",
+        "/api/bills-recent",
       ],
     },
   },
@@ -150,17 +162,15 @@ export default defineNuxtConfig({
       "/api/votes/**": { swr: 3600 },
       "/api/vote-analysis-top": { swr: 3600 },
       "/api/schedule": { swr: 1800 },
-      // 베이크된 정적 JSON(재배포 시 KV 퍼지) — 콜드 Worker p99 스파이크 제거 위해
-      // 엣지 SWR 로 캐시 직배. 데이터는 배포 때만 바뀌므로 길게 잡는다.
-      "/api/graph": { swr: 86400 },
-      "/api/insights": { swr: 86400 },
-      "/api/wealth": { swr: 86400 },
-      "/api/votedata": { swr: 86400 },
-      "/api/vote-insights": { swr: 86400 },
-      "/api/vote-stats": { swr: 86400 },
-      "/api/districts": { swr: 86400 },
-      "/api/shapes": { swr: 86400 },
-      "/api/bills-recent": { swr: 3600 },
+      // 베이크 정적 JSON: 프리렌더로 정적 직배(cf=HIT)되며, 프리렌더 파일에
+      // content-type·cache-control 을 입혀 브라우저/엣지 캐시까지 보장.
+      // (swr 은 정적 미스 시 Worker 폴백용) 데이터는 배포 때만 바뀐다.
+      ...Object.fromEntries(
+        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent"].map((n) => [
+          `/api/${n}`,
+          { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
+        ]),
+      ),
     },
     nitro: {
       storage: {
