@@ -248,6 +248,51 @@ const allProfiles = membersRaw.map((m) => {
   };
 });
 
+// ── 그룹 통계 enrichment (띠·별자리·성씨·평수 그룹별 집단 특성) ──
+// 의원별 재산·아파트 평수·대표발의·표결 집계를 id 로 묶어 그룹 평균을 낸다.
+const profileById = new Map(allProfiles.map((p) => [p.id, p]));
+const wealthData = (() => {
+  try { return read("wealth.json"); } catch { return {}; }
+})();
+const wealthById = new Map((wealthData.members || []).map((m) => [m.id, m.total]));
+const pyeongById = new Map(Object.entries(wealthData.apt?.byMember || {}));
+const detailsData = (() => {
+  try { return read("member-details.json"); } catch { return {}; }
+})();
+const tallyData = (() => {
+  try { return read("member-tally.json"); } catch { return {}; }
+})();
+const round1 = (x) => Math.round(x * 10) / 10;
+const avgOf = (ids, fn) => {
+  const xs = ids.map(fn).filter((v) => v != null && Number.isFinite(v));
+  return xs.length ? round1(xs.reduce((s, v) => s + v, 0) / xs.length) : null;
+};
+// 그룹(의원 id 배열) → 집단 특성 9종
+function statOf(ids) {
+  if (!ids.length) return null;
+  // 정당 분포 (내림차순, 약칭은 클라에서 처리)
+  const pc = {};
+  for (const id of ids) {
+    const p = profileById.get(id);
+    if (p) pc[p.party] = (pc[p.party] || 0) + 1;
+  }
+  const parties = Object.entries(pc).map(([party, count]) => ({ party, count })).sort((a, b) => b.count - a.count);
+  const women = ids.filter((id) => profileById.get(id)?.sex === "여").length;
+  const known = ids.filter((id) => { const s = profileById.get(id)?.sex; return s === "남" || s === "여"; }).length;
+  return {
+    n: ids.length,
+    parties,
+    avgWealth: avgOf(ids, (id) => wealthById.get(id)),
+    avgAge: avgOf(ids, (id) => profileById.get(id)?.age),
+    womenPct: known ? Math.round((women / known) * 100) : null,
+    avgPyeong: avgOf(ids, (id) => pyeongById.get(id)),
+    avgPropose: avgOf(ids, (id) => detailsData[id]?.proposeCount),
+    avgAttend: avgOf(ids, (id) => { const t = tallyData[id]; return t ? t.total - t.a : null; }),
+    avgYes: avgOf(ids, (id) => tallyData[id]?.y),
+    avgAbsent: avgOf(ids, (id) => tallyData[id]?.a),
+  };
+}
+
 // 세대(나이) — 스웜용 전체 + 통계
 const ageList = allProfiles
   .filter((p) => p.age != null)
@@ -351,6 +396,7 @@ const zodiacStats = ZODIAC.map((z) => ({
   zodiac: z,
   count: zodiacCount[z] || 0,
   members: (zodiacMembers[z] || []).slice(0, 12),
+  stats: statOf((zodiacMembers[z] || []).map((m) => m.id)),
 }));
 
 // 성씨 톱
@@ -362,7 +408,7 @@ for (const p of allProfiles) {
   (surnameMembers[s] = surnameMembers[s] || []).push({ id: p.id, name: p.name, party: p.party });
 }
 const surnameStats = Object.entries(surnameCount)
-  .map(([surname, count]) => ({ surname, count, members: surnameMembers[surname].slice(0, 12) }))
+  .map(([surname, count]) => ({ surname, count, members: surnameMembers[surname].slice(0, 12), stats: statOf(surnameMembers[surname].map((m) => m.id)) }))
   .sort((a, b) => b.count - a.count)
   .slice(0, 12);
 
@@ -418,6 +464,7 @@ for (const m of membersRaw) {
 }
 const starsigns = SIGNS.map((s) => ({
   sign: s.sign, emoji: s.emoji, count: signAgg[s.sign] || 0, members: (signMembers[s.sign] || []).slice(0, 10),
+  stats: statOf((signMembers[s.sign] || []).map((m) => m.id)),
 }));
 
 // ── 생일 (월-일만 베이크 → 클라가 오늘과 매칭) ──

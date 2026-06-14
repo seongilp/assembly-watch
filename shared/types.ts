@@ -278,6 +278,19 @@ export interface GraphMini {
   name: string;
   party: string;
 }
+// 띠·별자리·성씨 그룹별 집단 특성 (전 구성원 기준 평균)
+export interface GroupStats {
+  n: number; // 그룹 인원수
+  parties: { party: string; count: number }[]; // 정당 분포 (내림차순)
+  avgWealth: number | null; // 평균 재산 (억)
+  avgAge: number | null; // 평균 나이
+  womenPct: number | null; // 여성 비율 (%)
+  avgPyeong: number | null; // 평균 아파트 평수
+  avgPropose: number | null; // 1인당 평균 대표발의 건수
+  avgAttend: number | null; // 1인당 평균 표결 참석수
+  avgYes: number | null; // 1인당 평균 찬성수
+  avgAbsent: number | null; // 1인당 평균 불참수
+}
 export interface GraphPair {
   a: GraphMini;
   b: GraphMini;
@@ -319,8 +332,8 @@ export interface GraphData {
     buckets: { term: string; count: number }[];
     veterans: { id: string; name: string; party: string; reelection: string }[];
   };
-  zodiac: { zodiac: string; count: number; members: GraphMini[] }[];
-  surnames: { surname: string; count: number; members: GraphMini[] }[];
+  zodiac: { zodiac: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
+  surnames: { surname: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
   regions: {
     region: string;
     total: number;
@@ -346,7 +359,7 @@ export interface GraphData {
     total: number;
     parties: { party: string; count: number }[];
   }[];
-  starsigns: { sign: string; emoji: string; count: number; members: GraphMini[] }[];
+  starsigns: { sign: string; emoji: string; count: number; members: GraphMini[]; stats: GroupStats | null }[];
   birthdays: { id: string; name: string; party: string; md: string }[];
   passRate: {
     best: PassRateMember[];

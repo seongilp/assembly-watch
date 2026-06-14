@@ -239,12 +239,18 @@ async function main() {
     aptBuckets[i >= 0 ? i : BUCKETS.length - 1].count++;
   }
   const withId = aptList.filter((a) => a.id);
+  // 의원별 대표 평수(여러 채 보유 시 가장 큰 집) — 그룹 통계용
+  const byMember = {};
+  for (const a of withId) {
+    if (!byMember[a.id] || a.pyeong > byMember[a.id]) byMember[a.id] = a.pyeong;
+  }
   const apt = {
     total: aptList.length,
     avgPyeong: Math.round((aptList.reduce((s, a) => s + a.pyeong, 0) / Math.max(aptList.length, 1)) * 10) / 10,
     buckets: aptBuckets,
     largest: [...withId].sort((a, b) => b.pyeong - a.pyeong).slice(0, 5),
     smallest: [...withId].sort((a, b) => a.pyeong - b.pyeong).slice(0, 5),
+    byMember,
   };
 
   // ── 구 경계 폴리곤 내 분산 좌표 (얼굴 마커를 구 전체에 골고루) ──

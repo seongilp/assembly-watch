@@ -143,6 +143,7 @@ async function main() {
   for (const m of members) {
     details[m.id] = {
       bills: proposeBills.get(m.id) ?? [],
+      proposeCount: proposeCount.get(m.id) ?? 0, // 대표발의 총건수(bills 는 최근 일부만)
       votes: memberVotes.get(m.name) ?? [],
       votesScanned: votedBills.length,
     };
