@@ -1,15 +1,29 @@
 import { ImageResponse } from "workers-og";
+import { env } from "cloudflare:workers";
 import type { PostSpec, PostItem } from "./catalog";
 import { partyColor } from "~/lib/party";
 
-const FONT_BASE = "https://asm.zihado.com/fonts";
 let fontCache: { regular: ArrayBuffer; bold: ArrayBuffer } | null = null;
+
+interface AssetsBinding {
+  fetch: (req: Request) => Promise<Response>;
+}
+
+/** 폰트를 ASSETS 바인딩(배포 정적 에셋)에서 로드 — 요청·스케줄 양쪽에서 동작하며
+ *  외부 도메인/배포 순서에 의존하지 않는다. */
+async function fetchFont(path: string): Promise<ArrayBuffer> {
+  const assets = (env as unknown as { ASSETS?: AssetsBinding }).ASSETS;
+  if (!assets) throw new Error("ASSETS 바인딩이 없습니다");
+  const res = await assets.fetch(new Request(`https://assets.local${path}`));
+  if (!res.ok) throw new Error(`폰트 로드 실패 ${path}: ${res.status}`);
+  return res.arrayBuffer();
+}
 
 async function loadFonts() {
   if (fontCache) return fontCache;
   const [regular, bold] = await Promise.all([
-    fetch(`${FONT_BASE}/Pretendard-Regular.otf`).then((r) => r.arrayBuffer()),
-    fetch(`${FONT_BASE}/Pretendard-Bold.otf`).then((r) => r.arrayBuffer()),
+    fetchFont("/fonts/Pretendard-Regular.otf"),
+    fetchFont("/fonts/Pretendard-Bold.otf"),
   ]);
   fontCache = { regular, bold };
   return fontCache;
