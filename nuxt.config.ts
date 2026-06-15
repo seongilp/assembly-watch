@@ -103,6 +103,8 @@ export default defineNuxtConfig({
       nodeCompat: true,
       deployConfig: false, // wrangler.jsonc 를 직접 관리
     },
+    experimental: { tasks: true },
+    scheduledTasks: { "0 0 * * *": ["instagram:daily"] },
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
     prerender: {
       crawlLinks: false,
