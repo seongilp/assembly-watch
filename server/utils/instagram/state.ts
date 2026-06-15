@@ -25,8 +25,10 @@ export async function getLastPosted(): Promise<string | null> {
   return kv().get(LASTPOST_KEY);
 }
 
-/** 게시 성공 후에만 호출 — 포인터 advance + 게시일 기록 */
+/** 게시 성공 후에만 호출 — 게시일 기록 후 포인터 advance.
+ *  순서 중요: lastPosted 를 먼저 써야 두 put 사이 중단 시 최악이 '같은 슬러그 재게시'(중복방지
+ *  가드에 막힘)로 끝나고, '다른 슬러그 중복게시'는 발생하지 않는다. */
 export async function commitPosted(nextPointer: number, day: string): Promise<void> {
-  await kv().put(POINTER_KEY, String(nextPointer));
   await kv().put(LASTPOST_KEY, day);
+  await kv().put(POINTER_KEY, String(nextPointer));
 }
