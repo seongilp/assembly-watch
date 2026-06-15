@@ -84,6 +84,8 @@ type PostSpec = {
 
 ## 7. Operational (사용자 1회 셋업)
 
+타깃 계정: **@landman.official**.
+
 Graph API 전제: 계정이 **Business/Creator** + **Facebook 페이지 연결** + **Meta 앱**(`instagram_content_publish` 권한).
 
 - `docs/instagram-setup.md` 에 `IG_USER_ID` + 장기 토큰 발급 클릭 경로 문서화.
