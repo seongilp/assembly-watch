@@ -39,7 +39,7 @@
 
 **Files:**
 - Modify: `package.json`
-- Create: `public/fonts/Pretendard-Regular.ttf`, `public/fonts/Pretendard-Bold.ttf`
+- Create: `public/fonts/Pretendard-Regular.otf`, `public/fonts/Pretendard-Bold.otf`
 - Create: `vitest.config.ts`
 
 - [ ] **Step 1: 런타임/개발 의존성 추가**
@@ -68,13 +68,13 @@ Expected: 에러 없이 완료. 만약 설치 중 build-script 경고로 실패�
 Run:
 ```bash
 mkdir -p public/fonts
-curl -fL -o public/fonts/Pretendard-Regular.ttf \
-  https://github.com/orioncactus/pretendard/raw/main/packages/pretendard/dist/public/static/Pretendard-Regular.ttf
-curl -fL -o public/fonts/Pretendard-Bold.ttf \
-  https://github.com/orioncactus/pretendard/raw/main/packages/pretendard/dist/public/static/Pretendard-Bold.ttf
+curl -fsSL -o public/fonts/Pretendard-Regular.otf \
+  https://cdn.jsdelivr.net/npm/pretendard/dist/public/static/Pretendard-Regular.otf
+curl -fsSL -o public/fonts/Pretendard-Bold.otf \
+  https://cdn.jsdelivr.net/npm/pretendard/dist/public/static/Pretendard-Bold.otf
 ls -la public/fonts/
 ```
-Expected: 두 TTF 파일(각 수 MB, 한글 글리프 포함) 존재. 0바이트/HTML 이면 URL 실패이므로 재시도. 폰트는 Worker 번들이 아니라 정적 에셋으로 배포되어 런타임에 fetch 한다.
+Expected: 두 OTF 파일(각 수 MB, 한글 글리프 포함) 존재. 0바이트/HTML 이면 URL 실패이므로 재시도. 폰트는 Worker 번들이 아니라 정적 에셋으로 배포되어 런타임에 fetch 한다.
 
 - [ ] **Step 4: vitest 설정 (Nuxt 별칭 매핑)**
 
@@ -467,8 +467,8 @@ let fontCache: { regular: ArrayBuffer; bold: ArrayBuffer } | null = null;
 async function loadFonts() {
   if (fontCache) return fontCache;
   const [regular, bold] = await Promise.all([
-    fetch(`${FONT_BASE}/Pretendard-Regular.ttf`).then((r) => r.arrayBuffer()),
-    fetch(`${FONT_BASE}/Pretendard-Bold.ttf`).then((r) => r.arrayBuffer()),
+    fetch(`${FONT_BASE}/Pretendard-Regular.otf`).then((r) => r.arrayBuffer()),
+    fetch(`${FONT_BASE}/Pretendard-Bold.otf`).then((r) => r.arrayBuffer()),
   ]);
   fontCache = { regular, bold };
   return fontCache;
