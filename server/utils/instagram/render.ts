@@ -33,7 +33,8 @@ const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function row(it: PostItem, i: number, max: number): string {
-  const pct = Math.max(6, Math.round((it.value / max) * 100));
+  // 최대 72%로 캡 → 값 라벨(예: "6선")이 같은 줄에 들어갈 여백 확보(줄바꿈 방지)
+  const pct = Math.max(6, Math.round((it.value / max) * 72));
   const color = partyColor(it.party);
   return `
     <div style="display:flex;align-items:center;width:100%;margin-bottom:28px;">
@@ -45,7 +46,7 @@ function row(it: PostItem, i: number, max: number): string {
         </div>
         <div style="display:flex;align-items:center;margin-top:12px;">
           <div style="display:flex;height:18px;width:${pct}%;background:${color};border-radius:9px;"></div>
-          <div style="display:flex;margin-left:18px;font-size:34px;font-weight:700;color:#191F28;">${it.value.toLocaleString("ko-KR")}${esc(it.unit)}</div>
+          <div style="display:flex;flex-shrink:0;white-space:nowrap;margin-left:18px;font-size:34px;font-weight:700;color:#191F28;">${it.value.toLocaleString("ko-KR")}${esc(it.unit)}</div>
         </div>
       </div>
     </div>`;
