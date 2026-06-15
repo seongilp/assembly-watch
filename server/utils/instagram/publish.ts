@@ -1,4 +1,5 @@
-const GRAPH = "https://graph.facebook.com/v21.0";
+// Instagram API with Instagram Login (Facebook 페이지 불필요). 게시 엣지는 동일.
+const GRAPH = "https://graph.instagram.com/v21.0";
 
 /** 컨테이너 상태 폴링 한도 (단일 CDN 이미지면 보통 즉시 FINISHED) */
 const MAX_STATUS_TRIES = 5;
