@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { mapColumns } from "../../scripts/lib/dining.mjs";
 import { FOOD_CATEGORIES, isFoodRow, parseAmount } from "../../scripts/lib/dining.mjs";
+import { normalizeMerchant, inferCuisine } from "../../scripts/lib/dining.mjs";
 
 describe("mapColumns", () => {
   it("기본 파일 헤더를 표준 키 인덱스로 매핑", () => {
@@ -51,5 +52,29 @@ describe("parseAmount", () => {
     expect(parseAmount("1,200원")).toBe(1200);
     expect(parseAmount("-4000")).toBe(-4000);
     expect(parseAmount(null)).toBe(0);
+  });
+});
+
+describe("normalizeMerchant", () => {
+  it("괄호 보조설명·공백 정리, 동일 상호 병합", () => {
+    expect(normalizeMerchant("엘에스씨푸드(국회의사당)")).toBe("엘에스씨푸드");
+    expect(normalizeMerchant("투썸플레이스서여의도점")).toBe("투썸플레이스");
+    expect(normalizeMerchant("  달구지 ")).toBe("달구지");
+  });
+  it("빈 값/null 은 빈 문자열", () => {
+    expect(normalizeMerchant(null)).toBe("");
+  });
+});
+
+describe("inferCuisine", () => {
+  it("업종 우선 분류", () => {
+    expect(inferCuisine("아무이름", "기관구내식당업")).toBe("구내식당");
+    expect(inferCuisine("아무이름", "카페")).toBe("카페·음료");
+    expect(inferCuisine("아무이름", "한식")).toBe("한식");
+  });
+  it("업종 없으면 가게명 휴리스틱", () => {
+    expect(inferCuisine("스타벅스", null)).toBe("카페·음료");
+    expect(inferCuisine("○○숯불갈비", null)).toBe("고기·구이");
+    expect(inferCuisine("정체불명상호", null)).toBe("기타");
   });
 });
