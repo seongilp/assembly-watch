@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 
+// node-server 프리뷰 벤치 빌드: KV 없는 환경에서 메모리 캐시 사용
+const isNodeServerBuild = process.env.NITRO_PRESET === "node-server";
+
 // 빌드 전 생성된 member-details.json 으로 의원 상세 프리렌더 라우트 구성
 function memberRoutes(): string[] {
   try {
@@ -178,10 +181,15 @@ export default defineNuxtConfig({
     },
     nitro: {
       storage: {
-        cache: { driver: "cloudflare-kv-binding", binding: "CACHE" },
+        // node-server 벤치 빌드(KV 바인딩 없음) 시 메모리 캐시로 폴백.
+        // 운영 Cloudflare Workers 에서는 KV 바인딩 사용.
+        cache: isNodeServerBuild
+          ? { driver: "memory" }
+          : { driver: "cloudflare-kv-binding", binding: "CACHE" },
       },
     },
   },
+
 
   shadcn: {
     prefix: "",
