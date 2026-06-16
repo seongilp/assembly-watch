@@ -145,17 +145,21 @@ async function main() {
   // dining.json 경량화: restaurants 에서 groups/addr 제거(DiningRestaurant 표시용 필드만 유지).
   const restaurants = agg.restaurants.map(({ groups, addr, ...keep }) => keep);
 
+  // byMember 경량화: 매칭된 의원(현직, id 존재)만 유지. 미매칭(id 없음) 전직 의원은 뷰어에서 사용되지 않으므로 제거.
+  const byMemberMatched = agg.byMember.filter((m) => m.matched === true && m.id);
+
   const out = {
     basis: "정치자금 지출보고서 2012~2024 (선거자금 제외)",
     source: SOURCE,
     generatedAt: new Date().toISOString().slice(0, 10),
     years: [...years].sort(),
-    coverage: { rows: rows.length, matchedMembers: agg.byMember.filter((m) => m.matched).length, addrYears: [2023, 2024], mapPoints: mapPoints.length },
+    coverage: { rows: rows.length, matchedMembers: byMemberMatched.length, addrYears: [2023, 2024], mapPoints: mapPoints.length },
     ...agg,
+    byMember: byMemberMatched,
     restaurants,
     mapPoints,
   };
   writeFileSync(OUT, JSON.stringify(out));
-  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원, 매칭 ${out.coverage.matchedMembers}, 지도점 ${mapPoints.length}`);
+  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원(매칭 ${byMemberMatched.length}), 지도점 ${mapPoints.length}`);
 }
 main();

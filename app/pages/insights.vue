@@ -201,17 +201,17 @@ useSeoMeta({
           <RankingCard
             title="가장 많이 간 식당 (방문수)" :icon="Utensils"
             :items="dn.restaurants.slice(0, 10).map((r) => ({ id: r.name, name: r.name, party: r.cuisine, origin: r.gu ?? '', photo: '', count: r.visits }))"
-            unit="회" accent="#FF9500"
+            unit="회" accent="#FF9500" hide-photo
           />
-          <DiningBreakdown title="음식종류 분포(추정)" :rows="dn.cuisine.map((c) => ({ key: c.type, n: c.visits, avgMeal: Math.round(c.amount / Math.max(1, c.visits)), topCuisine: c.type, topRestaurant: '' }))" denom="전체 식당 지출 기준" />
+          <DiningBreakdown title="음식종류 분포(추정)" :rows="dn.cuisine.map((c) => ({ key: c.type, n: c.visits, avgMeal: Math.round(c.amount / Math.max(1, c.visits)), topCuisine: '', topRestaurant: '' }))" denom="전체 식당 지출 기준" count-unit="회" />
         </div>
         <div class="grid md:grid-cols-2 gap-4">
           <DiningBreakdown title="정당별 평균 식대" :rows="dn.breakdowns.byParty" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
-          <DiningBreakdown title="나이대별 평균 식대" :rows="dn.breakdowns.byAge" />
-          <DiningBreakdown title="성별 평균 식대" :rows="dn.breakdowns.byGender" />
-          <DiningBreakdown title="띠별 평균 식대" :rows="dn.breakdowns.byZodiac" />
-          <DiningBreakdown title="재산구간별 평균 식대" :rows="dn.breakdowns.byWealth" />
-          <DiningBreakdown title="아파트 평수별 평균 식대" :rows="dn.breakdowns.byPyeong" />
+          <DiningBreakdown title="나이대별 평균 식대" :rows="dn.breakdowns.byAge" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
+          <DiningBreakdown title="성별 평균 식대" :rows="dn.breakdowns.byGender" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
+          <DiningBreakdown title="띠별 평균 식대" :rows="dn.breakdowns.byZodiac" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
+          <DiningBreakdown title="재산구간별 평균 식대" :rows="dn.breakdowns.byWealth" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
+          <DiningBreakdown title="아파트 평수별 평균 식대" :rows="dn.breakdowns.byPyeong" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
         </div>
         <ClientOnly>
           <DiningMap v-if="dn.mapPoints?.length" :points="dn.mapPoints" />

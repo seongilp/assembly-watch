@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DiningBreakdownRow } from "#shared/types";
-const props = defineProps<{ title: string; rows: DiningBreakdownRow[]; denom?: string }>();
+const props = withDefaults(defineProps<{ title: string; rows: DiningBreakdownRow[]; denom?: string; countUnit?: string }>(), { countUnit: "명" });
 const won = (n: number) => n.toLocaleString("ko-KR");
 const max = computed(() => Math.max(1, ...props.rows.map((r) => r.avgMeal)));
 </script>
@@ -13,7 +13,7 @@ const max = computed(() => Math.max(1, ...props.rows.map((r) => r.avgMeal)));
     </div>
     <ul class="space-y-2">
       <li v-for="r in rows" :key="r.key" class="text-sm">
-        <div class="flex justify-between"><span class="font-semibold">{{ r.key }} <span class="text-toss-gray-400 font-normal">({{ r.n }}명)</span></span><span class="text-toss-gray-500">평균 {{ won(r.avgMeal) }}원 · {{ r.topCuisine }}<span v-if="r.topRestaurant" class="text-toss-gray-400"> · 단골 {{ r.topRestaurant }}</span></span></div>
+        <div class="flex justify-between"><span class="font-semibold">{{ r.key }} <span class="text-toss-gray-400 font-normal">({{ r.n.toLocaleString() }}{{ countUnit }})</span></span><span class="text-toss-gray-500">평균 {{ won(r.avgMeal) }}원<template v-if="r.topCuisine"> · {{ r.topCuisine }}</template><span v-if="r.topRestaurant" class="text-toss-gray-400"> · 단골 {{ r.topRestaurant }}</span></span></div>
         <div class="mt-1 h-2 rounded-full bg-toss-gray-100 overflow-hidden"><div class="h-full bg-toss-blue rounded-full" :style="{ width: `${Math.min(100, (r.avgMeal / max) * 100)}%` }" /></div>
       </li>
     </ul>
