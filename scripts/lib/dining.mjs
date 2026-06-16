@@ -1,3 +1,4 @@
+// dining.mjs — KA-money 파싱·집계 유틸리티
 // 헤더 라벨 → 표준 키. 라벨 변형을 정규식으로 흡수, 없으면 -1.
 const find = (header, re) => header.findIndex((h) => re.test(String(h || "").replace(/\s/g, "")));
 
@@ -20,4 +21,16 @@ export function mapColumns(header) {
     address: find(header, /^주소$/),
     biz: find(header, /^업종$/),
   };
+}
+
+export const FOOD_CATEGORIES = new Set([
+  "간담회_식대", "사무실_식대비", "언론_기자식대등", "간담회_다과",
+]);
+
+export const isFoodRow = (category) => FOOD_CATEGORIES.has(String(category || "").trim());
+
+export function parseAmount(v) {
+  if (typeof v === "number") return Number.isFinite(v) ? Math.trunc(v) : 0;
+  const n = parseInt(String(v ?? "").replace(/[^\d-]/g, ""), 10);
+  return Number.isFinite(n) ? n : 0;
 }

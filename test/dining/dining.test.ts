@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mapColumns } from "../../scripts/lib/dining.mjs";
+import { FOOD_CATEGORIES, isFoodRow, parseAmount } from "../../scripts/lib/dining.mjs";
 
 describe("mapColumns", () => {
   it("기본 파일 헤더를 표준 키 인덱스로 매핑", () => {
@@ -25,5 +26,30 @@ describe("mapColumns", () => {
     expect(m.address).toBe(15);
     expect(m.biz).toBe(16);
     expect(m.category).toBe(19);
+  });
+});
+
+describe("FOOD_CATEGORIES", () => {
+  it("식당 분류 4종을 포함", () => {
+    expect([...FOOD_CATEGORIES].sort()).toEqual(
+      ["간담회_다과","간담회_식대","사무실_식대비","언론_기자식대등"].sort(),
+    );
+  });
+});
+
+describe("isFoodRow", () => {
+  it("식당 분류면 true, 아니면 false", () => {
+    expect(isFoodRow("간담회_식대")).toBe(true);
+    expect(isFoodRow("교통_택시")).toBe(false);
+    expect(isFoodRow(null)).toBe(false);
+  });
+});
+
+describe("parseAmount", () => {
+  it("숫자/문자/콤마/음수 처리", () => {
+    expect(parseAmount(70000)).toBe(70000);
+    expect(parseAmount("1,200원")).toBe(1200);
+    expect(parseAmount("-4000")).toBe(-4000);
+    expect(parseAmount(null)).toBe(0);
   });
 });
