@@ -49,8 +49,11 @@ watch(
 
 onMounted(() => {
   // 생일 배너는 graph 데이터 사용 → 화면 표시와 무관하게 백그라운드 로드.
-  // (직접 ?tab= 진입 보정은 위 route.query.tab watch 가 라우터 동기화 시점에 처리)
   loadGraph();
+  // 직접 ?tab= 진입 시: 초기 탭은 watch(tab) 가 안 터지므로(값 변경 없음) 여기서 해당 탭 데이터를 로드.
+  if (tab.value === "wealth") loadWealth();
+  if (tab.value === "discover") loadDiscover();
+  if (tab.value === "dining") loadDining();
 });
 
 // 재산(억) → RankingCard(count) 매핑
