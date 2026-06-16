@@ -460,12 +460,8 @@ export interface DiningRestaurant {
   members: number;
   gu: string | null;
 }
-export interface DiningMember {
-  id: string;
-  name: string;
-  party: string;
-  origin: string;
-  matched: boolean;
+/** /api/dining-members/:id 응답 — byMember 에서 id/name/party/origin/matched 제거한 경량 통계 */
+export interface DiningMemberStats {
   visits: number;
   amount: number;
   topRestaurants: { name: string; visits: number }[];
@@ -536,7 +532,6 @@ export interface DiningData {
   coverage: { rows: number; matchedMembers: number; addrYears: number[]; mapPoints: number };
   restaurants: DiningRestaurant[];
   mapPoints: DiningMapPoint[];
-  byMember: DiningMember[];
   cuisine: { type: string; visits: number; amount: number }[];
   breakdowns: {
     byParty: DiningBreakdownRow[];

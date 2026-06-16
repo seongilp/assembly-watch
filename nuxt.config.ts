@@ -31,6 +31,18 @@ function diningRoutes(): string[] {
   }
 }
 
+// 의원별 식당 API 프리렌더 (300명 전체 — 식당 기록 없으면 null 반환)
+function diningMemberRoutes(): string[] {
+  try {
+    const p = "./server/assets/members.json";
+    if (!existsSync(p)) return [];
+    const members = JSON.parse(readFileSync(p, "utf8")) as { id: string }[];
+    return members.map((m) => `/api/dining-members/${m.id}`);
+  } catch {
+    return [];
+  }
+}
+
 // 최근 표결 상세 페이지 + API 모두 프리렌더 (목록 인앱 펼침도 cf=HIT 즉시)
 function voteRoutes(): string[] {
   try {
@@ -130,6 +142,7 @@ export default defineNuxtConfig({
         ...memberRoutes(),
         ...diningRoutes(),
         ...voteRoutes(),
+        ...diningMemberRoutes(),
         // 위원회 상세(157개)는 일정·회의록이 동적(라이브 API)이라 프리렌더 제외 →
         // 런타임 SSR(routeRules /committees/** swr). 핵심정보는 committees.json 베이크.
         // 베이크 정적 JSON API → 정적 파일로 프리렌더 = CF 엣지 직배(cf=HIT, Worker 미경유).
@@ -180,6 +193,7 @@ export default defineNuxtConfig({
       "/api/members": { swr: 21600 },
       "/api/members/**": { swr: 3600 },
       "/api/dining/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
+      "/api/dining-members/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
       "/api/committees": { swr: 21600 },
       "/api/bills": { swr: 600 },
       "/api/votes": { swr: 600 },

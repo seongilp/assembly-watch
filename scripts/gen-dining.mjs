@@ -16,6 +16,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = process.env.KA_MONEY_DIR || join(root, ".cache/ka-money");
 const OUT = join(root, "server/assets/dining.json");
 const OUT_DETAILS = join(root, "server/assets/dining-details.json");
+const OUT_MEMBERS = join(root, "server/assets/dining-members.json");
 const SOURCE = { name: "오마이뉴스·경향신문·뉴스타파", url: "https://omn.kr/187rv" };
 
 // gen-graph-data.mjs 와 동일 기준 유지(2020=쥐). 불일치 시 펀팩트 띠 분석이 어긋남.
@@ -168,25 +169,29 @@ async function main() {
   // dining.json 경량화: restaurants 에서 groups/addr 제거(표시용 필드 + id 만 유지).
   const restaurants = agg.restaurants.map(({ groups, addr, ...keep }) => keep);
 
-  // byMember 경량화: 매칭된 의원(현직, id 존재)만 유지. 미매칭(id 없음) 전직 의원은 뷰어에서 사용되지 않으므로 제거.
-  const byMemberMatched = agg.byMember.filter((m) => m.matched === true && m.id);
+  // byMember → per-member 파일로 분리. id 있는 매칭 의원만 포함, 불필요 필드(name/party/origin/matched) 제거.
+  const diningMemberMap = Object.fromEntries(
+    agg.byMember
+      .filter((m) => m.matched === true && m.id)
+      .map(({ id, name, party, origin, matched, ...stats }) => [id, stats]),
+  );
 
-  // details 는 무거우므로 메인 dining.json 에 포함하지 않는다.
-  const { details: _dropped, ...aggLean } = agg;
+  // details(무거움) + byMember(per-member 파일로 분리)는 메인 dining.json 에 포함하지 않는다.
+  const { details: _dropped, byMember: _byMember, ...aggLean } = agg;
 
   const out = {
     basis: "정치자금 지출보고서 2012~2024 (선거자금 제외)",
     source: SOURCE,
     generatedAt: new Date().toISOString().slice(0, 10),
     years: [...years].sort(),
-    coverage: { rows: rows.length, matchedMembers: byMemberMatched.length, addrYears: [2023, 2024], mapPoints: mapPoints.length },
+    coverage: { rows: rows.length, matchedMembers: Object.keys(diningMemberMap).length, addrYears: [2023, 2024], mapPoints: mapPoints.length },
     ...aggLean,
-    byMember: byMemberMatched,
     restaurants,
     mapPoints,
   };
   writeFileSync(OUT, JSON.stringify(out));
   writeFileSync(OUT_DETAILS, JSON.stringify(details));
-  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원(매칭 ${byMemberMatched.length}), 지도점 ${mapPoints.length}, 상세 ${Object.keys(details).length}`);
+  writeFileSync(OUT_MEMBERS, JSON.stringify(diningMemberMap));
+  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원(매칭 ${Object.keys(diningMemberMap).length}), 지도점 ${mapPoints.length}, 상세 ${Object.keys(details).length}, per-member ${Object.keys(diningMemberMap).length}`);
 }
 main();

@@ -12,7 +12,7 @@ import {
   Crown,
   ChevronDown,
 } from "lucide-vue-next";
-import type { MemberDetail, Insights, DiningData } from "#shared/types";
+import type { MemberDetail, Insights, DiningMemberStats } from "#shared/types";
 import { partyColor } from "~/lib/party";
 import { formatDate, voteStyle } from "~/lib/format";
 
@@ -33,8 +33,10 @@ const [{ data: insights }, { data: vinsights }, { data, pending }] = await Promi
   detailReq,
 ]);
 
-const { data: dining } = await useFetch<DiningData>("/api/dining", { key: "dining" });
-const myDining = computed(() => dining.value?.byMember.find((m) => m.id === route.params.id));
+const { data: myDining } = await useFetch<DiningMemberStats | null>(
+  `/api/dining-members/${id.value}`,
+  { key: `dining-m-${id.value}` },
+);
 
 const member = computed(() => data.value?.member ?? undefined);
 
