@@ -135,28 +135,52 @@ function bucketRows(rowsByMember, members, field) {
 }
 const topMapKey = (map) => [...map.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "기타";
 
+// 가게단위로 가장 구체적인 음식종류·주소(시군구)를 전파.
+// 업종(주소)은 2023~24 행에만 있으므로, 그 가게의 모든 연도 행에 퍼뜨린다.
+function resolveMerchantMeta(rows) {
+  const cuisineCount = new Map(); // merchant -> Map<cuisine, count> (기타 제외)
+  const guByMerchant = new Map(); // merchant -> 첫 non-null gu
+  for (const r of rows) {
+    if (r.cuisine && r.cuisine !== "기타") {
+      if (!cuisineCount.has(r.merchant)) cuisineCount.set(r.merchant, new Map());
+      const c = cuisineCount.get(r.merchant);
+      c.set(r.cuisine, (c.get(r.cuisine) || 0) + 1);
+    }
+    if (r.gu && !guByMerchant.has(r.merchant)) guByMerchant.set(r.merchant, r.gu);
+  }
+  const bestCuisine = (merchant) => {
+    const c = cuisineCount.get(merchant);
+    return c ? topMapKey(c) : "기타";
+  };
+  const knownGu = (merchant) => guByMerchant.get(merchant) ?? null;
+  return { bestCuisine, knownGu };
+}
+
 export function aggregate(rows, members, opts = {}) {
   const RTOP = opts.restaurantTop ?? 200;
   const net = netRows(rows);
+  const { bestCuisine, knownGu } = resolveMerchantMeta(net);
 
-  // 식당 랭킹
+  // 식당 랭킹 (가게단위 전파된 cuisine/gu 사용)
   const rest = new Map();
   for (const r of net) {
-    if (!rest.has(r.merchant)) rest.set(r.merchant, { name: r.merchant, cuisine: r.cuisine, visits: 0, amount: 0, members: new Set(), gu: r.gu });
+    if (!rest.has(r.merchant)) rest.set(r.merchant, { name: r.merchant, cuisine: bestCuisine(r.merchant), visits: 0, amount: 0, members: new Set(), gu: knownGu(r.merchant) });
     const x = rest.get(r.merchant); x.visits++; x.amount += r.amount; x.members.add(r.member);
   }
   const restaurants = topN([...rest.values()].map((x) => ({ ...x, members: x.members.size })), "visits", RTOP);
 
-  // 의원별
+  // 의원별 (가게단위 전파된 cuisine/gu 사용)
   const byName = new Map();
   for (const r of net) {
     if (!byName.has(r.member)) byName.set(r.member, { name: r.member, party: r.party, origin: r.origin, visits: 0, amount: 0, inDist: 0, distKnown: 0, cuisine: new Map(), purpose: new Map(), rests: new Map() });
     const a = byName.get(r.member);
+    const cuisine = bestCuisine(r.merchant);
+    const gu = knownGu(r.merchant);
     a.visits++; a.amount += r.amount;
-    a.cuisine.set(r.cuisine, (a.cuisine.get(r.cuisine) || 0) + 1);
+    a.cuisine.set(cuisine, (a.cuisine.get(cuisine) || 0) + 1);
     a.purpose.set(r.category, (a.purpose.get(r.category) || 0) + 1);
     a.rests.set(r.merchant, (a.rests.get(r.merchant) || 0) + 1);
-    if (r.gu) { a.distKnown++; if (inOwnDistrict(r.gu, originGu(r.origin))) a.inDist++; }
+    if (gu) { a.distKnown++; if (inOwnDistrict(gu, originGu(r.origin))) a.inDist++; }
   }
 
   const byMember = [...byName.values()].map((a) => {
@@ -171,9 +195,9 @@ export function aggregate(rows, members, opts = {}) {
     };
   }).sort((x, y) => y.amount - x.amount);
 
-  // 음식종류 전체 분포
+  // 음식종류 전체 분포 (가게단위 전파된 cuisine 사용)
   const cui = new Map();
-  for (const r of net) { if (!cui.has(r.cuisine)) cui.set(r.cuisine, { type: r.cuisine, visits: 0, amount: 0 }); const x = cui.get(r.cuisine); x.visits++; x.amount += r.amount; }
+  for (const r of net) { const t = bestCuisine(r.merchant); if (!cui.has(t)) cui.set(t, { type: t, visits: 0, amount: 0 }); const x = cui.get(t); x.visits++; x.amount += r.amount; }
   const cuisine = topN([...cui.values()], "visits", 20);
 
   // breakdowns (매칭 의원 기준)
@@ -190,7 +214,7 @@ export function aggregate(rows, members, opts = {}) {
   // 지역구 only/never (지역구 의원 + distKnown>0)
   const dist = byMember.filter((m) => m.districtRate != null && originGu(m.origin));
   const proportional = byMember.filter((m) => !originGu(m.origin)).map((m) => ({ id: m.id, name: m.name }));
-  const addrKnown = net.filter((r) => r.gu).length;
+  const addrKnown = net.filter((r) => knownGu(r.merchant)).length;
   return {
     restaurants, byMember, cuisine, breakdowns,
     district: {

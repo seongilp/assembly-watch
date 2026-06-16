@@ -134,3 +134,28 @@ describe("aggregate", () => {
     expect(out.breakdowns.byParty.find((b) => b.key === "더불어민주당").n).toBe(1);
   });
 });
+
+describe("aggregate — 가게단위 cuisine/gu 전파", () => {
+  // 같은 가게(달구지)에 업종-유래 행 1건 + 기타 행 여러 건. 주소는 한 행에만 존재.
+  const propRows = [
+    { member:"홍길동", party:"무소속", origin:"비례대표", amount:30000, merchant:"달구지", cuisine:"기타", category:"간담회_식대", gu:null },
+    { member:"홍길동", party:"무소속", origin:"비례대표", amount:30000, merchant:"달구지", cuisine:"기타", category:"간담회_식대", gu:null },
+    { member:"이순신", party:"무소속", origin:"비례대표", amount:30000, merchant:"달구지", cuisine:"고기·구이", category:"간담회_식대", gu:"서울 영등포구" },
+  ];
+  const out = aggregate(propRows, new Map());
+
+  it("업종-유래 cuisine 이 같은 가게의 다른 연도 행에 전파됨", () => {
+    const r = out.restaurants.find((x) => x.name === "달구지");
+    expect(r.cuisine).toBe("고기·구이"); // 기타가 아니라 가장 구체적인 값
+    expect(r.visits).toBe(3);
+  });
+  it("전체 cuisine 분포에서 모든 방문이 고기·구이로 집계(기타 0)", () => {
+    expect(out.cuisine.find((c) => c.type === "고기·구이").visits).toBe(3);
+    expect(out.cuisine.find((c) => c.type === "기타")).toBeUndefined();
+  });
+  it("주소 없는 옛 행도 가게의 knownGu 를 상속(addrCoverage=1)", () => {
+    const r = out.restaurants.find((x) => x.name === "달구지");
+    expect(r.gu).toBe("서울 영등포구");
+    expect(out.district.addrCoverage).toBe(1); // 3행 모두 가게 gu 상속
+  });
+});
