@@ -209,3 +209,38 @@ describe("bucketRows — 그룹 단골식당 topRestaurant(I2)", () => {
     expect(b).toHaveProperty("avgMeal");
   });
 });
+
+describe("aggregate — 식당별 대표주소 addr + 그룹 방문 분해(Task 7b)", () => {
+  const r = [
+    // 정당이 다른 두 의원이 같은 식당(여의도밥집) 방문. 한 행에만 주소 존재.
+    { member:"민주의원", party:"더불어민주당", origin:"비례대표", amount:30000, merchant:"여의도밥집", cuisine:"기타", category:"간담회_식대", gu:null, addr:null },
+    { member:"국힘의원", party:"국민의힘", origin:"비례대표", amount:30000, merchant:"여의도밥집", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구", addr:"서울특별시 영등포구 국회대로 1" },
+    { member:"무명씨", party:"무소속", origin:"비례대표", amount:30000, merchant:"여의도밥집", cuisine:"기타", category:"간담회_식대", gu:null, addr:null }, // 매칭 안 됨 → groups 미반영, visits 는 포함
+  ];
+  const members = new Map([
+    ["민주의원", { id:"D1", name:"민주의원", party:"더불어민주당", origin:"비례대표", ageBucket:"50대", gender:"남", zodiac:"쥐", wealthBucket:"10억 미만", pyeongBucket:"20평대" }],
+    ["국힘의원", { id:"P1", name:"국힘의원", party:"국민의힘", origin:"비례대표", ageBucket:"60대", gender:"여", zodiac:"소", wealthBucket:"10~30억", pyeongBucket:"30평대" }],
+  ]);
+  const out = aggregate(r, members);
+  const rest = out.restaurants.find((x) => x.name === "여의도밥집");
+
+  it("식당에 대표주소(첫 비어있지 않은 addr) 전파", () => {
+    expect(rest.addr).toBe("서울특별시 영등포구 국회대로 1");
+  });
+  it("gu 도 가게단위 전파(주소 없는 행 포함)", () => {
+    expect(rest.gu).toBe("서울 영등포구");
+    expect(rest.visits).toBe(3); // 매칭 여부 무관 총 방문
+  });
+  it("groups.party 에 매칭 의원의 두 정당이 카운트(미매칭 무명씨 제외)", () => {
+    expect(rest.groups.party["더불어민주당"]).toBe(1);
+    expect(rest.groups.party["국민의힘"]).toBe(1);
+    expect(rest.groups.party["무소속"]).toBeUndefined(); // 미매칭은 groups 미반영
+  });
+  it("다른 차원(gender/zodiac/wealth/pyeong)도 분해", () => {
+    expect(rest.groups.gender["남"]).toBe(1);
+    expect(rest.groups.gender["여"]).toBe(1);
+    expect(rest.groups.zodiac["쥐"]).toBe(1);
+    expect(rest.groups.wealth["10~30억"]).toBe(1);
+    expect(rest.groups.pyeong["20평대"]).toBe(1);
+  });
+});

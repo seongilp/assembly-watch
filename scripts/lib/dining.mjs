@@ -158,6 +158,7 @@ const topMapKey = (map, fallback = "기타") =>
 function resolveMerchantMeta(rows) {
   const cuisineCount = new Map(); // merchant -> Map<cuisine, count> (기타 제외)
   const guByMerchant = new Map(); // merchant -> 첫 non-null gu
+  const addrByMerchant = new Map(); // merchant -> 첫 비어있지 않은 주소(지오코딩용)
   for (const r of rows) {
     if (r.cuisine && r.cuisine !== "기타") {
       if (!cuisineCount.has(r.merchant)) cuisineCount.set(r.merchant, new Map());
@@ -165,25 +166,36 @@ function resolveMerchantMeta(rows) {
       c.set(r.cuisine, (c.get(r.cuisine) || 0) + 1);
     }
     if (r.gu && !guByMerchant.has(r.merchant)) guByMerchant.set(r.merchant, r.gu);
+    if (r.addr && !addrByMerchant.has(r.merchant)) addrByMerchant.set(r.merchant, String(r.addr).trim());
   }
   const bestCuisine = (merchant) => {
     const c = cuisineCount.get(merchant);
     return c ? topMapKey(c) : "기타";
   };
   const knownGu = (merchant) => guByMerchant.get(merchant) ?? null;
-  return { bestCuisine, knownGu };
+  const knownAddr = (merchant) => addrByMerchant.get(merchant) ?? null;
+  return { bestCuisine, knownGu, knownAddr };
+}
+
+// 식당별 그룹 분해: 매칭 의원의 party/age/gender/zodiac/wealth/pyeong 버킷별 방문수
+function emptyGroups() { return { party: {}, age: {}, gender: {}, zodiac: {}, wealth: {}, pyeong: {} }; }
+function addGroup(g, dem) {
+  if (!dem) return;
+  const map = { party: dem.party, age: dem.ageBucket, gender: dem.gender, zodiac: dem.zodiac, wealth: dem.wealthBucket, pyeong: dem.pyeongBucket };
+  for (const [k, v] of Object.entries(map)) if (v != null) g[k][v] = (g[k][v] || 0) + 1;
 }
 
 export function aggregate(rows, members, opts = {}) {
   const RTOP = opts.restaurantTop ?? 200;
   const net = netRows(rows);
-  const { bestCuisine, knownGu } = resolveMerchantMeta(net);
+  const { bestCuisine, knownGu, knownAddr } = resolveMerchantMeta(net);
 
-  // 식당 랭킹 (가게단위 전파된 cuisine/gu 사용)
+  // 식당 랭킹 (가게단위 전파된 cuisine/gu/addr 사용) + 그룹별 방문 분해(지도 필터용)
   const rest = new Map();
   for (const r of net) {
-    if (!rest.has(r.merchant)) rest.set(r.merchant, { name: r.merchant, cuisine: bestCuisine(r.merchant), visits: 0, amount: 0, members: new Set(), gu: knownGu(r.merchant) });
+    if (!rest.has(r.merchant)) rest.set(r.merchant, { name: r.merchant, cuisine: bestCuisine(r.merchant), visits: 0, amount: 0, members: new Set(), gu: knownGu(r.merchant), addr: knownAddr(r.merchant), groups: emptyGroups() });
     const x = rest.get(r.merchant); x.visits++; x.amount += r.amount; x.members.add(r.member);
+    addGroup(x.groups, members.get(r.member)); // 매칭 의원만 그룹에 반영(미매칭은 visits 만 증가)
   }
   const restaurants = topN([...rest.values()].map((x) => ({ ...x, members: x.members.size })), "visits", RTOP);
 
