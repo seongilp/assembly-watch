@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff, Telescope } from "lucide-vue-next";
-import type { Insights, VoteInsights, GraphData, WealthData, InsightMember, VoteAnalysisTop } from "#shared/types";
+import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff, Telescope, Utensils } from "lucide-vue-next";
+import type { Insights, VoteInsights, GraphData, WealthData, InsightMember, VoteAnalysisTop, DiningData } from "#shared/types";
 
 const route = useRoute();
 const router = useRouter();
@@ -25,16 +25,18 @@ const { data: va, execute: loadDiscover } = useFetch<VoteAnalysisTop>("/api/vote
   server: false,
   immediate: false,
 });
+const { data: dn, execute: loadDining } = useFetch<DiningData>("/api/dining", { key: "dining", server: false, immediate: false });
 
-// 탭 ↔ URL 동기화 (?tab=graph|wealth|discover) — 새로고침·공유에도 유지
-type Tab = "fun" | "graph" | "wealth" | "discover";
-const initTab = (q: unknown): Tab => (q === "graph" || q === "wealth" || q === "discover" ? q : "fun");
+// 탭 ↔ URL 동기화 (?tab=graph|wealth|discover|dining) — 새로고침·공유에도 유지
+type Tab = "fun" | "graph" | "wealth" | "discover" | "dining";
+const initTab = (q: unknown): Tab => (q === "graph" || q === "wealth" || q === "discover" || q === "dining" ? q : "fun");
 const tab = ref<Tab>(initTab(route.query.tab));
 watch(tab, (t) => {
   router.replace({ query: { ...route.query, tab: t === "fun" ? undefined : t } });
   if (t === "graph") loadGraph();
   if (t === "wealth") loadWealth();
   if (t === "discover") loadDiscover();
+  if (t === "dining") loadDining();
 });
 // 프리렌더 하이드레이션 직후 라우터가 실제 URL 로 동기화될 때도 잡히도록 쿼리를 직접 감시
 watch(
@@ -118,6 +120,14 @@ useSeoMeta({
       >
         <Telescope class="size-4" /> 발견
       </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-[13px] font-bold transition-colors"
+        :class="tab === 'dining' ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500'"
+        @click="tab = 'dining'"
+      >
+        <Utensils class="size-4" /> 식당
+      </button>
     </div>
 
     <!-- 랭킹 탭 -->
@@ -182,6 +192,34 @@ useSeoMeta({
       <div v-else class="rounded-2xl bg-card card-shadow p-10 text-center text-toss-gray-400">
         데이터를 불러오는 중…
       </div>
+    </template>
+
+    <!-- 식당 탭 -->
+    <template v-else-if="tab === 'dining'">
+      <div v-if="dn" class="space-y-6">
+        <div class="grid md:grid-cols-2 gap-4">
+          <RankingCard
+            title="가장 많이 간 식당 (방문수)" :icon="Utensils"
+            :items="dn.restaurants.slice(0, 10).map((r) => ({ id: r.name, name: r.name, party: r.cuisine, origin: r.gu ?? '', photo: '', count: r.visits }))"
+            unit="회" accent="#FF9500"
+          />
+          <DiningBreakdown title="음식종류 분포(추정)" :rows="dn.cuisine.map((c) => ({ key: c.type, n: c.visits, avgMeal: Math.round(c.amount / Math.max(1, c.visits)), topCuisine: c.type }))" denom="전체 식당 지출 기준" />
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <DiningBreakdown title="정당별 평균 식대" :rows="dn.breakdowns.byParty" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
+          <DiningBreakdown title="나이대별 평균 식대" :rows="dn.breakdowns.byAge" />
+          <DiningBreakdown title="성별 평균 식대" :rows="dn.breakdowns.byGender" />
+          <DiningBreakdown title="띠별 평균 식대" :rows="dn.breakdowns.byZodiac" />
+          <DiningBreakdown title="재산구간별 평균 식대" :rows="dn.breakdowns.byWealth" />
+          <DiningBreakdown title="아파트 평수별 평균 식대" :rows="dn.breakdowns.byPyeong" />
+        </div>
+        <ClientOnly>
+          <DiningMap v-if="dn.mapPoints?.length" :points="dn.mapPoints" />
+        </ClientOnly>
+        <DiningDistrictLists :district="dn.district" />
+        <p class="text-[11px] text-toss-gray-400">자료: <a :href="dn.source.url" target="_blank" rel="noopener" class="font-semibold hover:text-toss-blue">{{ dn.source.name }}</a> · {{ dn.basis }}</p>
+      </div>
+      <p v-else class="text-toss-gray-400 py-10 text-center">불러오는 중…</p>
     </template>
 
     <!-- 재산 탭 -->
