@@ -5,8 +5,12 @@ import type { DiningData } from "#shared/types";
 const { data } = await useFetch<DiningData>("/api/dining", { key: "dining" });
 
 const route = useRoute();
-// 펀팩트 식당 랭킹에서 식당 클릭 시 ?q=가게명 으로 진입 → 검색어 프리필
+// 펀팩트 식당 랭킹에서 식당 클릭 시 ?q=가게명 으로 진입 → 검색어 프리필.
+// /dining 은 프리렌더 정적 페이지라 SSR 시 query 가 비어 있으므로, 클라이언트에서 URL query 를 반영한다.
 const q = ref(typeof route.query.q === "string" ? route.query.q : "");
+const applyQuery = (v: unknown) => { if (typeof v === "string") q.value = v; };
+onMounted(() => applyQuery(route.query.q));
+watch(() => route.query.q, applyQuery);
 const cuisine = ref<string>("전체");
 const cuisineTypes = computed(() => ["전체", ...new Set((data.value?.restaurants ?? []).map((r) => r.cuisine))]);
 const restaurants = computed(() => {
