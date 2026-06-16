@@ -197,7 +197,37 @@ export function aggregate(rows, members, opts = {}) {
     const x = rest.get(r.merchant); x.visits++; x.amount += r.amount; x.members.add(r.member);
     addGroup(x.groups, members.get(r.member)); // 매칭 의원만 그룹에 반영(미매칭은 visits 만 증가)
   }
-  const restaurants = topN([...rest.values()].map((x) => ({ ...x, members: x.members.size })), "visits", RTOP);
+  // 방문순 정렬 후 안정 id(r0,r1,...) 부여 — topN 의 결정적 정렬(visits desc, name asc) 기준.
+  const restaurants = topN([...rest.values()].map((x) => ({ ...x, members: x.members.size })), "visits", RTOP)
+    .map((x, i) => ({ id: `r${i}`, ...x }));
+  const idByMerchant = new Map(restaurants.map((x) => [x.name, x.id]));
+
+  // details: 상위 restaurantTop 식당의 방문 의원 명단 + 연도별 추이(netted 행 기준).
+  const detailAcc = new Map(); // merchant -> { members: Map<name,{id,name,party,visits,amount}>, byYear: Map<year,{visits,amount}> }
+  for (const r of net) {
+    const id = idByMerchant.get(r.merchant);
+    if (!id) continue; // 상위 N 밖 식당은 detail 생략
+    if (!detailAcc.has(r.merchant)) detailAcc.set(r.merchant, { members: new Map(), byYear: new Map() });
+    const acc = detailAcc.get(r.merchant);
+    const dem = members.get(r.member);
+    if (!acc.members.has(r.member)) acc.members.set(r.member, { id: dem?.id ?? "", name: r.member, party: dem?.party ?? r.party, visits: 0, amount: 0 });
+    const mm = acc.members.get(r.member); mm.visits++; mm.amount += r.amount;
+    const y = Number.isFinite(r.year) ? r.year : null;
+    if (y != null) {
+      if (!acc.byYear.has(y)) acc.byYear.set(y, { visits: 0, amount: 0 });
+      const yy = acc.byYear.get(y); yy.visits++; yy.amount += r.amount;
+    }
+  }
+  const details = {};
+  for (const x of restaurants) {
+    const acc = detailAcc.get(x.name) ?? { members: new Map(), byYear: new Map() };
+    details[x.id] = {
+      id: x.id, name: x.name, cuisine: x.cuisine, gu: x.gu, rank: Number(x.id.slice(1)) + 1,
+      visits: x.visits, amount: x.amount,
+      members: [...acc.members.values()].sort((a, b) => (b.visits - a.visits) || a.name.localeCompare(b.name)),
+      byYear: [...acc.byYear.entries()].map(([year, v]) => ({ year, ...v })).sort((a, b) => a.year - b.year),
+    };
+  }
 
   // 의원별 (가게단위 전파된 cuisine/gu 사용)
   const byName = new Map();
@@ -246,7 +276,7 @@ export function aggregate(rows, members, opts = {}) {
   const proportional = byMember.filter((m) => !originGu(m.origin)).map((m) => ({ id: m.id, name: m.name }));
   const addrKnown = net.filter((r) => knownGu(r.merchant)).length;
   return {
-    restaurants, byMember, cuisine, breakdowns,
+    restaurants, byMember, cuisine, breakdowns, details,
     district: {
       addrCoverage: net.length ? Math.round((addrKnown / net.length) * 100) / 100 : 0,
       onlyInDistrict: dist.filter((m) => m.districtRate === 1).map(pickDist),

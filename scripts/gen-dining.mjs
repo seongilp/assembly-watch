@@ -15,6 +15,7 @@ import { mapColumns, isFoodRow, parseAmount, normalizeMerchant, inferCuisine, gu
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = process.env.KA_MONEY_DIR || join(root, ".cache/ka-money");
 const OUT = join(root, "server/assets/dining.json");
+const OUT_DETAILS = join(root, "server/assets/dining-details.json");
 const SOURCE = { name: "오마이뉴스·경향신문·뉴스타파", url: "https://omn.kr/187rv" };
 
 // gen-graph-data.mjs 와 동일 기준 유지(2020=쥐). 불일치 시 펀팩트 띠 분석이 어긋남.
@@ -62,7 +63,15 @@ function buildMemberIndex() {
   return idx;
 }
 
-function readRows(file) {
+// 셀에서 연도 추출. cellDates:true 면 Date, 아니면 'YYYY...' 문자열. 누락/비현실(<2000)이면 파일연도 fallback.
+function yearOf(cell, fileYear) {
+  let y = null;
+  if (cell instanceof Date) y = cell.getFullYear();
+  else { const n = parseInt(String(cell ?? "").slice(0, 4), 10); if (Number.isFinite(n)) y = n; }
+  return (y && y >= 2000) ? y : fileYear;
+}
+
+function readRows(file, fileYear) {
   const wb = XLSX.readFile(join(DIR, file), { cellDates: true });
   const ws = wb.Sheets["Data"] || wb.Sheets[wb.SheetNames[0]];
   const grid = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true });
@@ -86,6 +95,7 @@ function readRows(file) {
       category: String(category).trim(),
       gu: col.address >= 0 ? guOf(addr) : null,
       addr: addr ? String(addr).trim() : null, // 지오코딩용 대표주소(주소 컬럼 없으면 null)
+      year: col.date >= 0 ? yearOf(r[col.date], fileYear) : fileYear, // 연도별 추이용
     });
   }
   return out;
@@ -109,21 +119,22 @@ async function geocode(addr, key, cache) {
   cache[addr] = v;
   return v;
 }
-// MAP_TOP(기본 500) 식당(방문순, 주소 보유)만 지오코딩. 실패/무주소는 제외.
-async function buildMapPoints(restaurants) {
+// MAP_TOP(기본 500) 식당(방문순, 주소 보유)을 한 번만 지오코딩해 merchant 이름→{lat,lng} 맵을 만든다.
+// mapPoints 와 details 좌표가 같은 결과를 공유(주소 캐시로 재호출 방지, 결정적).
+async function geocodeRestaurants(restaurants) {
   const key = restKey();
-  if (!key) { console.warn("[gen-dining] KAKAO_REST_KEY 없음 — mapPoints 생략"); return []; }
+  if (!key) { console.warn("[gen-dining] KAKAO_REST_KEY 없음 — 좌표 생략"); return new Map(); }
   const cache = loadGeo();
   const cand = restaurants.filter((r) => r.addr).slice(0, +(process.env.MAP_TOP || 500));
-  const points = [];
+  const geoByName = new Map();
   for (const r of cand) {
     const geo = await geocode(r.addr, key, cache);
-    if (geo) points.push({ name: r.name, lat: geo.lat, lng: geo.lng, cuisine: r.cuisine, gu: r.gu, visits: r.visits, amount: r.amount, groups: r.groups });
+    if (geo) geoByName.set(r.name, geo);
     await new Promise((res) => setTimeout(res, 60));
   }
   mkdirSync(dirname(GEO_CACHE), { recursive: true });
   writeFileSync(GEO_CACHE, JSON.stringify(cache));
-  return points;
+  return geoByName;
 }
 
 async function main() {
@@ -134,19 +145,34 @@ async function main() {
   const use = files.filter((f) => /_수입지출/.test(f) || !richBase.has(f));
   const years = new Set();
   let rows = [];
-  for (const f of use) { const y = (f.match(/^(\d{4})/) || [])[1]; if (y) years.add(+y); rows = rows.concat(readRows(f)); }
+  for (const f of use) { const y = +((f.match(/^(\d{4})/) || [])[1]); if (y) years.add(y); rows = rows.concat(readRows(f, Number.isFinite(y) ? y : null)); }
 
   const members = buildMemberIndex();
   const agg = aggregate(rows, members, { restaurantTop: 200 });
 
-  // mapPoints 가 무거운 groups/addr 를 운반하므로, 지오코딩은 strip 전에 수행.
-  const mapPoints = await buildMapPoints(agg.restaurants);
+  // 주소 보유 식당을 한 번만 지오코딩(merchant→{lat,lng}), mapPoints/details 좌표 공유.
+  const geoByName = await geocodeRestaurants(agg.restaurants);
 
-  // dining.json 경량화: restaurants 에서 groups/addr 제거(DiningRestaurant 표시용 필드만 유지).
+  // mapPoints: 지오코딩 성공 식당만. 안정 id 부여(상세 페이지 링크용).
+  const mapPoints = agg.restaurants
+    .filter((r) => geoByName.has(r.name))
+    .map((r) => { const g = geoByName.get(r.name); return { id: r.id, name: r.name, lat: g.lat, lng: g.lng, cuisine: r.cuisine, gu: r.gu, visits: r.visits, amount: r.amount, groups: r.groups }; });
+
+  // details 에 좌표 부착(주소 지오코딩된 식당만 lat/lng, 아니면 null) → 별도 파일로 분리.
+  const details = {};
+  for (const [id, d] of Object.entries(agg.details)) {
+    const g = geoByName.get(d.name);
+    details[id] = { ...d, lat: g ? g.lat : null, lng: g ? g.lng : null };
+  }
+
+  // dining.json 경량화: restaurants 에서 groups/addr 제거(표시용 필드 + id 만 유지).
   const restaurants = agg.restaurants.map(({ groups, addr, ...keep }) => keep);
 
   // byMember 경량화: 매칭된 의원(현직, id 존재)만 유지. 미매칭(id 없음) 전직 의원은 뷰어에서 사용되지 않으므로 제거.
   const byMemberMatched = agg.byMember.filter((m) => m.matched === true && m.id);
+
+  // details 는 무거우므로 메인 dining.json 에 포함하지 않는다.
+  const { details: _dropped, ...aggLean } = agg;
 
   const out = {
     basis: "정치자금 지출보고서 2012~2024 (선거자금 제외)",
@@ -154,12 +180,13 @@ async function main() {
     generatedAt: new Date().toISOString().slice(0, 10),
     years: [...years].sort(),
     coverage: { rows: rows.length, matchedMembers: byMemberMatched.length, addrYears: [2023, 2024], mapPoints: mapPoints.length },
-    ...agg,
+    ...aggLean,
     byMember: byMemberMatched,
     restaurants,
     mapPoints,
   };
   writeFileSync(OUT, JSON.stringify(out));
-  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원(매칭 ${byMemberMatched.length}), 지도점 ${mapPoints.length}`);
+  writeFileSync(OUT_DETAILS, JSON.stringify(details));
+  console.log(`[gen-dining] ${rows.length} 식당행 → ${restaurants.length} 식당, ${agg.byMember.length} 의원(매칭 ${byMemberMatched.length}), 지도점 ${mapPoints.length}, 상세 ${Object.keys(details).length}`);
 }
 main();

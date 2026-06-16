@@ -244,3 +244,55 @@ describe("aggregate — 식당별 대표주소 addr + 그룹 방문 분해(Task 
     expect(rest.groups.pyeong["20평대"]).toBe(1);
   });
 });
+
+describe("aggregate — 식당 안정 id + details(방문 의원·연도별 추이)", () => {
+  const r = [
+    // 인기순: 많이간집(4) > 가끔집(1). id 는 방문순 정렬 후 r0, r1.
+    { member:"갑", party:"더불어민주당", origin:"비례대표", amount:10000, merchant:"많이간집", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구", addr:"서울 영등포구 1", year:2023 },
+    { member:"갑", party:"더불어민주당", origin:"비례대표", amount:20000, merchant:"많이간집", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구", addr:"서울 영등포구 1", year:2024 },
+    { member:"을", party:"국민의힘", origin:"비례대표", amount:30000, merchant:"많이간집", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구", addr:"서울 영등포구 1", year:2024 },
+    { member:"무명", party:"개혁신당", origin:"비례대표", amount:5000, merchant:"많이간집", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구", addr:"서울 영등포구 1", year:2024 }, // 미매칭
+    { member:"갑", party:"더불어민주당", origin:"비례대표", amount:7000, merchant:"가끔집", cuisine:"한식", category:"간담회_식대", gu:null, addr:null, year:2022 },
+  ];
+  const members = new Map([
+    ["갑", { id:"G1", name:"갑", party:"더불어민주당", origin:"비례대표", ageBucket:"50대", gender:"남", zodiac:"쥐", wealthBucket:"10억 미만", pyeongBucket:"20평대" }],
+    ["을", { id:"E1", name:"을", party:"국민의힘", origin:"비례대표", ageBucket:"60대", gender:"여", zodiac:"소", wealthBucket:"10~30억", pyeongBucket:"30평대" }],
+  ]);
+  const out = aggregate(r, members);
+
+  it("방문순 정렬 후 안정 id(r0,r1) 부여", () => {
+    expect(out.restaurants[0].name).toBe("많이간집");
+    expect(out.restaurants[0].id).toBe("r0");
+    expect(out.restaurants[1].id).toBe("r1");
+  });
+  it("details 가 id 로 키잉, rank=index+1", () => {
+    const d = out.details["r0"];
+    expect(d.name).toBe("많이간집");
+    expect(d.rank).toBe(1);
+    expect(d.visits).toBe(4);
+    expect(d.amount).toBe(65000); // 10000+20000+30000+5000
+    expect(d.gu).toBe("서울 영등포구");
+  });
+  it("members: 두 의원 방문 집계 + 미매칭은 id 빈문자열", () => {
+    const d = out.details["r0"];
+    // 방문수 desc: 갑(2) > 을(1) = 무명(1) → 동점은 name localeCompare
+    const gap = d.members.find((m) => m.name === "갑");
+    expect(gap).toMatchObject({ id: "G1", party: "더불어민주당", visits: 2, amount: 30000 });
+    const eul = d.members.find((m) => m.name === "을");
+    expect(eul).toMatchObject({ id: "E1", party: "국민의힘", visits: 1, amount: 30000 });
+    const un = d.members.find((m) => m.name === "무명");
+    expect(un).toMatchObject({ id: "", party: "개혁신당", visits: 1 });
+    expect(d.members[0].name).toBe("갑"); // 최다 방문 선두
+  });
+  it("byYear: 연도별 합계, 오름차순", () => {
+    const d = out.details["r0"];
+    expect(d.byYear).toEqual([
+      { year: 2023, visits: 1, amount: 10000 },
+      { year: 2024, visits: 3, amount: 55000 },
+    ]);
+  });
+  it("id 가 결정적(동일 입력 → 동일 매핑)", () => {
+    const out2 = aggregate(r, members);
+    expect(out2.restaurants.map((x) => `${x.id}:${x.name}`)).toEqual(out.restaurants.map((x) => `${x.id}:${x.name}`));
+  });
+});
