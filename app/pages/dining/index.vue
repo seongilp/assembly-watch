@@ -48,7 +48,10 @@ useSeoMeta({
         </thead>
         <tbody>
           <tr v-for="r in restaurants.slice(0, 100)" :key="r.name" class="border-t border-toss-gray-100" :class="r.name === q.trim() ? 'bg-toss-blue/10' : ''">
-            <td class="px-4 py-2 font-semibold">{{ r.name }}<span v-if="r.gu" class="ml-1 text-[11px] text-toss-gray-400">{{ r.gu }}</span></td>
+            <td class="px-4 py-2 font-semibold">
+              <NuxtLink :to="`/dining/${r.id}`" class="hover:text-toss-blue transition-colors">{{ r.name }}</NuxtLink>
+              <span v-if="r.gu" class="ml-1 text-[11px] text-toss-gray-400">{{ r.gu }}</span>
+            </td>
             <td class="px-4 py-2 text-center text-toss-gray-500">{{ r.cuisine }}</td>
             <td class="px-4 py-2 text-center">{{ r.visits }}</td>
             <td class="px-4 py-2 text-right">{{ won(r.amount) }}원</td>

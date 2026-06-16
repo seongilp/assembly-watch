@@ -17,6 +17,20 @@ function memberRoutes(): string[] {
   }
 }
 
+// 식당 상세 페이지 + API 프리렌더 (200개 — 엣지 직배)
+function diningRoutes(): string[] {
+  try {
+    const p = "./server/assets/dining-details.json";
+    if (!existsSync(p)) return [];
+    return Object.keys(JSON.parse(readFileSync(p, "utf8"))).flatMap((id) => [
+      `/dining/${id}`,
+      `/api/dining/${id}`,
+    ]);
+  } catch {
+    return [];
+  }
+}
+
 // 최근 표결 상세 페이지 + API 모두 프리렌더 (목록 인앱 펼침도 cf=HIT 즉시)
 function voteRoutes(): string[] {
   try {
@@ -114,6 +128,7 @@ export default defineNuxtConfig({
       routes: [
         "/sitemap.xml",
         ...memberRoutes(),
+        ...diningRoutes(),
         ...voteRoutes(),
         // 위원회 상세(157개)는 일정·회의록이 동적(라이브 API)이라 프리렌더 제외 →
         // 런타임 SSR(routeRules /committees/** swr). 핵심정보는 committees.json 베이크.
@@ -157,12 +172,14 @@ export default defineNuxtConfig({
       "/dining": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시 + 브라우저 재검증
       "/members/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/dining/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/votes/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/committees/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },
       "/api/members/**": { swr: 3600 },
+      "/api/dining/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
       "/api/committees": { swr: 21600 },
       "/api/bills": { swr: 600 },
       "/api/votes": { swr: 600 },

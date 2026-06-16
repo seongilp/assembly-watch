@@ -54,6 +54,8 @@ function render() {
   for (const { p, c } of shown.value) {
     const el = document.createElement("div");
     el.innerHTML = markerHtml(p, c);
+    el.style.cursor = "pointer";
+    el.addEventListener("click", () => navigateTo(`/dining/${p.id}`));
     const ov = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(p.lat, p.lng), content: el, yAnchor: 0.5, xAnchor: 0.5 });
     ov.setMap(map); overlays.push(ov);
   }

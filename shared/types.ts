@@ -452,6 +452,7 @@ export interface MemberDetail {
 // ─── 정치자금 식당 지출 (OhmyNews KA-money 2012~2024) ───
 
 export interface DiningRestaurant {
+  id: string;
   name: string;
   cuisine: string;
   visits: number;
@@ -495,6 +496,7 @@ export interface DiningGroupBreakdown {
   pyeong: Record<string, number>;
 }
 export interface DiningMapPoint {
+  id: string;
   name: string;
   lat: number;
   lng: number;
@@ -503,6 +505,28 @@ export interface DiningMapPoint {
   visits: number;
   amount: number;
   groups: DiningGroupBreakdown;
+}
+
+export interface DiningMemberVisit {
+  id: string;
+  name: string;
+  party: string;
+  visits: number;
+  amount: number;
+}
+
+export interface DiningRestaurantDetail {
+  id: string;
+  name: string;
+  cuisine: string;
+  gu: string | null;
+  rank: number;
+  visits: number;
+  amount: number;
+  lat: number | null;
+  lng: number | null;
+  members: DiningMemberVisit[];
+  byYear: { year: number; visits: number; amount: number }[];
 }
 export interface DiningData {
   basis: string;
