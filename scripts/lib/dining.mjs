@@ -62,3 +62,37 @@ export function inferCuisine(merchant, biz) {
   for (const [label, re] of CUISINE_RULES) if (re.test(hay)) return label;
   return "기타";
 }
+
+const SIDO = ["서울","부산","대구","인천","광주","대전","울산","세종","경기","강원","충북","충남","전북","전남","경북","경남","제주"];
+const SIDO_ALIAS = {
+  서울특별시:"서울", 부산광역시:"부산", 대구광역시:"대구", 인천광역시:"인천", 광주광역시:"광주",
+  대전광역시:"대전", 울산광역시:"울산", 세종특별자치시:"세종", 경기도:"경기",
+  강원특별자치도:"강원", 강원도:"강원", 충청북도:"충북", 충청남도:"충남",
+  전북특별자치도:"전북", 전라북도:"전북", 전라남도:"전남", 경상북도:"경북", 경상남도:"경남", 제주특별자치도:"제주",
+};
+function sidoOf(addr) {
+  const a = String(addr || "").trim();
+  for (const [full, s] of Object.entries(SIDO_ALIAS)) if (a.startsWith(full)) return s;
+  for (const s of SIDO) if (a.startsWith(s)) return s;
+  return null;
+}
+export function guOf(addr) {
+  const s = sidoOf(addr);
+  if (!s) return null;
+  let rest = String(addr).trim();
+  for (const full of Object.keys(SIDO_ALIAS)) if (rest.startsWith(full)) { rest = rest.slice(full.length); break; }
+  for (const sd of SIDO) if (rest.startsWith(sd)) { rest = rest.slice(sd.length); break; }
+  const m = rest.match(/^\s*([가-힣]+?[시군구])/);
+  return m ? `${s} ${m[1]}` : null;
+}
+export function originGu(origin) {
+  const o = String(origin || "").trim();
+  if (!o || o.includes("비례")) return null;
+  const s = SIDO.find((sd) => o.startsWith(sd));
+  if (!s) return null;
+  const rest = o.slice(s.length);
+  const m = rest.match(/^\s*([가-힣]+?[시군구])/);
+  return m ? `${s} ${m[1]}` : null;
+}
+export const inOwnDistrict = (restaurantGu, memberGu) =>
+  !!restaurantGu && !!memberGu && restaurantGu === memberGu;

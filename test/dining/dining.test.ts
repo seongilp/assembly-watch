@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mapColumns } from "../../scripts/lib/dining.mjs";
 import { FOOD_CATEGORIES, isFoodRow, parseAmount } from "../../scripts/lib/dining.mjs";
 import { normalizeMerchant, inferCuisine } from "../../scripts/lib/dining.mjs";
+import { guOf, originGu, inOwnDistrict } from "../../scripts/lib/dining.mjs";
 
 describe("mapColumns", () => {
   it("기본 파일 헤더를 표준 키 인덱스로 매핑", () => {
@@ -76,5 +77,30 @@ describe("inferCuisine", () => {
     expect(inferCuisine("스타벅스", null)).toBe("카페·음료");
     expect(inferCuisine("○○숯불갈비", null)).toBe("고기·구이");
     expect(inferCuisine("정체불명상호", null)).toBe("기타");
+  });
+});
+
+describe("guOf", () => {
+  it("주소에서 '시도 구' 추출", () => {
+    expect(guOf("서울특별시영등포구국회대로72길22")).toBe("서울 영등포구");
+    expect(guOf("경기도성남시분당구판교로")).toBe("경기 성남시");
+  });
+  it("파싱 불가 시 null", () => {
+    expect(guOf("주소불명")).toBe(null);
+  });
+});
+
+describe("originGu", () => {
+  it("의원 지역구에서 '시도 구' 추출, 비례는 null", () => {
+    expect(originGu("서울 영등포구을")).toBe("서울 영등포구");
+    expect(originGu("비례대표")).toBe(null);
+  });
+});
+
+describe("inOwnDistrict", () => {
+  it("식당 시군구가 지역구와 같으면 true", () => {
+    expect(inOwnDistrict("서울 영등포구", "서울 영등포구")).toBe(true);
+    expect(inOwnDistrict("서울 강남구", "서울 영등포구")).toBe(false);
+    expect(inOwnDistrict(null, "서울 영등포구")).toBe(false);
   });
 });
