@@ -24,7 +24,7 @@ function diningRoutes(): string[] {
     if (!existsSync(p)) return [];
     return Object.keys(JSON.parse(readFileSync(p, "utf8"))).flatMap((id) => [
       `/dining/${id}`,
-      `/api/dining/${id}`,
+      `/api/dining-detail/${id}`,
     ]);
   } catch {
     return [];
@@ -192,7 +192,7 @@ export default defineNuxtConfig({
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },
       "/api/members/**": { swr: 3600 },
-      "/api/dining/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
+      "/api/dining-detail/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
       "/api/dining-members/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
       "/api/committees": { swr: 21600 },
       "/api/bills": { swr: 600 },

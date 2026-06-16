@@ -7,7 +7,7 @@ const route = useRoute();
 const id = route.params.id as string;
 
 const { data: d, status, error } = await useFetch<DiningRestaurantDetail>(
-  `/api/dining/${id}`,
+  `/api/dining-detail/${id}`,
   { key: `dining-${id}` },
 );
 

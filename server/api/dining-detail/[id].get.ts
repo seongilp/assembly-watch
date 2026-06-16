@@ -6,7 +6,7 @@ const DETAILS = details as Record<string, DiningRestaurantDetail>;
 /**
  * 식당 상세: 방문 의원 명단 + 연도별 추이
  * 빌드타임 정적 베이크(dining-details.json) → 런타임 0 호출.
- * GET /api/dining/:id
+ * GET /api/dining-detail/:id
  */
 export default defineCachedEventHandler(
   async (event): Promise<DiningRestaurantDetail> => {
