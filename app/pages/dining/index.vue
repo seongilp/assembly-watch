@@ -4,7 +4,9 @@ import type { DiningData } from "#shared/types";
 
 const { data } = await useFetch<DiningData>("/api/dining", { key: "dining" });
 
-const q = ref("");
+const route = useRoute();
+// 펀팩트 식당 랭킹에서 식당 클릭 시 ?q=가게명 으로 진입 → 검색어 프리필
+const q = ref(typeof route.query.q === "string" ? route.query.q : "");
 const cuisine = ref<string>("전체");
 const cuisineTypes = computed(() => ["전체", ...new Set((data.value?.restaurants ?? []).map((r) => r.cuisine))]);
 const restaurants = computed(() => {
@@ -41,7 +43,7 @@ useSeoMeta({
           <tr><th class="text-left px-4 py-2">식당</th><th class="px-4 py-2">종류(추정)</th><th class="px-4 py-2">방문</th><th class="px-4 py-2">금액</th><th class="px-4 py-2">의원수</th></tr>
         </thead>
         <tbody>
-          <tr v-for="r in restaurants.slice(0, 100)" :key="r.name" class="border-t border-toss-gray-100">
+          <tr v-for="r in restaurants.slice(0, 100)" :key="r.name" class="border-t border-toss-gray-100" :class="r.name === q.trim() ? 'bg-toss-blue/10' : ''">
             <td class="px-4 py-2 font-semibold">{{ r.name }}<span v-if="r.gu" class="ml-1 text-[11px] text-toss-gray-400">{{ r.gu }}</span></td>
             <td class="px-4 py-2 text-center text-toss-gray-500">{{ r.cuisine }}</td>
             <td class="px-4 py-2 text-center">{{ r.visits }}</td>

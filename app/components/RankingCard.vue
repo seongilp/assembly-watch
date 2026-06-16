@@ -14,9 +14,12 @@ const props = withDefaults(
     limit?: number;
     crown?: string; // 1위 칭호 (예: "불참왕")
     hidePhoto?: boolean; // 아바타 대신 순위 배지 표시 (식당 랭킹 등 의원이 아닌 항목에 사용)
+    hrefFor?: (m: InsightMember) => string; // 행 링크 커스터마이즈 (기본: /members/:id). 식당 등 비의원 항목용.
   }>(),
   { metric: "count", unit: "", accent: "#3182F6", limit: 10, crown: "", hidePhoto: false },
 );
+
+const linkFor = (m: InsightMember) => (props.hrefFor ? props.hrefFor(m) : `/members/${m.id}`);
 
 // 공동 순위(competition ranking): 동일 수치면 같은 순위, 다음 순위는 인원수만큼 건너뜀 (1,1,1,4…)
 const ranked = computed(() => {
@@ -56,7 +59,7 @@ function valueOf(m: InsightMember) {
     <ol class="space-y-1">
       <li v-for="{ m, rank } in list" :key="m.id">
         <NuxtLink
-          :to="`/members/${m.id}`"
+          :to="linkFor(m)"
           class="group flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-toss-gray-50 transition-colors"
         >
           <span
