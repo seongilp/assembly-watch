@@ -66,6 +66,15 @@ describe("normalizeMerchant", () => {
   it("빈 값/null 은 빈 문자열", () => {
     expect(normalizeMerchant(null)).toBe("");
   });
+  it("'점'으로 끝나는 정상 상호를 삭제하지 않는다(C1 데이터손실 방지)", () => {
+    expect(normalizeMerchant("마포돈까스전문점")).toBe("마포돈까스전문점");
+    expect(normalizeMerchant("용산갈비집본점")).toBe("용산갈비집본점");
+    expect(normalizeMerchant("신촌설렁탕직영점")).toBe("신촌설렁탕직영점");
+    expect(normalizeMerchant("하동관")).toBe("하동관");
+  });
+  it("정규화 결과가 절대 빈 문자열이 되지 않는다(원본 보존)", () => {
+    expect(normalizeMerchant("국회점")).not.toBe("");
+  });
 });
 
 describe("inferCuisine", () => {
@@ -157,5 +166,46 @@ describe("aggregate — 가게단위 cuisine/gu 전파", () => {
     const r = out.restaurants.find((x) => x.name === "달구지");
     expect(r.gu).toBe("서울 영등포구");
     expect(out.district.addrCoverage).toBe(1); // 3행 모두 가게 gu 상속
+  });
+});
+
+describe("aggregate — netRows 상쇄 명세(I1)", () => {
+  it("고아 음수(매칭 양수 없음)는 폐기, 양수는 보존", () => {
+    const r = [
+      { member:"갑", party:"P", origin:"비례대표", amount:50000, merchant:"가게A", cuisine:"한식", category:"간담회_식대", gu:null },
+      { member:"갑", party:"P", origin:"비례대표", amount:-99999, merchant:"가게A", cuisine:"한식", category:"간담회_식대", gu:null }, // 매칭 양수 없음 → 폐기
+    ];
+    const out = aggregate(r, new Map());
+    const m = out.byMember.find((x) => x.name === "갑");
+    expect(m.amount).toBe(50000); // 양수만 남음
+    expect(m.visits).toBe(1);
+  });
+  it("부분 환불(금액 불일치)은 상쇄하지 않고 원 양수 보존", () => {
+    const r = [
+      { member:"을", party:"P", origin:"비례대표", amount:50000, merchant:"가게B", cuisine:"한식", category:"간담회_식대", gu:null },
+      { member:"을", party:"P", origin:"비례대표", amount:-30000, merchant:"가게B", cuisine:"한식", category:"간담회_식대", gu:null }, // 50000 과 불일치 → 상쇄 안 됨
+    ];
+    const out = aggregate(r, new Map());
+    const m = out.byMember.find((x) => x.name === "을");
+    expect(m.amount).toBe(50000); // 부분환불은 무시(음수행 자체는 양수 집계서 제외)
+    expect(m.visits).toBe(1);
+  });
+});
+
+describe("bucketRows — 그룹 단골식당 topRestaurant(I2)", () => {
+  const r = [
+    { member:"가", party:"P", origin:"비례대표", amount:10000, merchant:"단골집", cuisine:"한식", category:"간담회_식대", gu:null },
+    { member:"가", party:"P", origin:"비례대표", amount:10000, merchant:"단골집", cuisine:"한식", category:"간담회_식대", gu:null },
+    { member:"가", party:"P", origin:"비례대표", amount:10000, merchant:"가끔집", cuisine:"한식", category:"간담회_식대", gu:null },
+  ];
+  const members = new Map([
+    ["가", { id:"A1", name:"가", party:"P", origin:"비례대표", ageBucket:"50대", gender:"남", zodiac:"쥐", wealthBucket:"10억 미만", pyeongBucket:"20평대" }],
+  ]);
+  const out = aggregate(r, members);
+  it("당별 행에 topRestaurant(최다 방문 가게) 포함", () => {
+    const b = out.breakdowns.byParty.find((x) => x.key === "P");
+    expect(b.topRestaurant).toBe("단골집");
+    expect(b).toHaveProperty("topCuisine");
+    expect(b).toHaveProperty("avgMeal");
   });
 });

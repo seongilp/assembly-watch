@@ -3,19 +3,14 @@
 const find = (header, re) => header.findIndex((h) => re.test(String(h || "").replace(/\s/g, "")));
 
 export function mapColumns(header) {
-  const incomeIdx = find(header, /^수입$/);
-  // "지출" 계열: 리치파일엔 수입/지출 둘 다 있어 '지출'을 우선 선택
-  const amount = (() => {
-    const exact = find(header, /^지출(액|금회)?$/);
-    return exact;
-  })();
   return {
     member: find(header, /^의원명$/),
     party: find(header, /^당$/),
     region: find(header, /^지역명$/),
     date: find(header, /^연월일$/),
     desc: find(header, /^내역$/),
-    amount,
+    // "지출" 계열: 리치파일엔 수입/지출 둘 다 있어 '지출'(액/금회) 을 우선 선택
+    amount: find(header, /^지출(액|금회)?$/),
     merchant: find(header, /^(성명(-법인단체명)?|사용처)$/),
     category: find(header, /^분류$/),
     address: find(header, /^주소$/),
@@ -35,13 +30,22 @@ export function parseAmount(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+// 지점 접미사로 흔히 쓰이는 지역/랜드마크 토큰. '...<지역>점' 형태일 때만 떼어낸다.
+const BRANCH_TOKENS = "서여의도|여의도|국회|서울|강남|홍대|신촌|명동|종로|광화문|마포|용산";
+const BRANCH_RE = new RegExp(`(?:${BRANCH_TOKENS})점$`, "u");
+
+// 가게명 정규화. 괄호 보조설명을 제거하고, '<지역>점'(예: 서여의도점) 지점 태그만 떼어낸다.
+// 주의(C1): '돈까스전문점'·'직영점'·'본점' 처럼 지역 토큰이 아닌 '...점'은 정상 상호이므로 보존
+// (이전 그리디 정규식은 이름 전체를 삼켜 readRows 의 `if (!merchant) continue` 에서 행을 통째로 잃었음).
+// 어떤 경우에도 빈 문자열을 반환하지 않는다(빈 결과 시 원본 유지).
 export function normalizeMerchant(v) {
-  let s = String(v ?? "").trim();
-  if (!s) return "";
-  s = s.replace(/\([^)]*\)/g, "");                       // (국회의사당) 등 괄호 제거
-  // 지역명 + 점 형태의 지점 접미사 제거 (서여의도점, 국회점 등)
-  s = s.replace(/(?:서울|여의도|국회|강남|홍대|신촌|명동|종로|광화문|마포|용산|서여의도)[가-힣]*점$/u, "");
-  return s.replace(/\s+/g, "").trim();
+  const raw = String(v ?? "").trim();
+  if (!raw) return "";
+  let s = raw.replace(/\([^)]*\)/g, "").trim();          // (국회의사당) 등 괄호 제거
+  const stripped = s.replace(BRANCH_RE, "");             // '<지역>점' 태그만 제거(이름 자체는 절대 삼키지 않음)
+  if (stripped && stripped !== s) s = stripped;
+  s = s.replace(/\s+/g, "").trim();
+  return s || raw.replace(/\s+/g, "").trim();            // 절대 빈 문자열 반환 금지
 }
 
 const CUISINE_RULES = [
@@ -97,7 +101,12 @@ export function originGu(origin) {
 export const inOwnDistrict = (restaurantGu, memberGu) =>
   !!restaurantGu && !!memberGu && restaurantGu === memberGu;
 
-// 같은 의원·가게·금액의 음/양 쌍을 상쇄(정정·반환). 남은 양수 행만 집계.
+// EXACT-KEY 상쇄(I1): 정정·반환으로 생긴 음수 행을 (member|merchant|금액) 가 정확히 일치하는
+// 양수 행 1건과만 1:1로 상쇄한다.
+//  - 음수 행 자체는 절대 집계에 포함하지 않는다(`amount <= 0` 스킵).
+//  - 고아 음수(매칭되는 양수가 없음) → 그냥 폐기(양수 집계에 영향 없음).
+//  - 부분 환불(금액이 양수와 다름) → EXACT-KEY 가 안 맞으므로 상쇄되지 않고, 원 양수 행은 그대로 남는다.
+//  - 서로 다른 양수 행의 방문 수(visits)는 그대로 보존된다.
 function netRows(rows) {
   const neg = new Map();
   for (const r of rows) if (r.amount < 0) {
@@ -108,32 +117,41 @@ function netRows(rows) {
   for (const r of rows) {
     if (r.amount <= 0) continue;
     const k = `${r.member}|${r.merchant}|${r.amount}`;
-    if (neg.get(k) > 0) { neg.set(k, neg.get(k) - 1); continue; } // 상쇄
+    if (neg.get(k) > 0) { neg.set(k, neg.get(k) - 1); continue; } // 동일 금액 양수 1건과 상쇄
     out.push(r);
   }
   return out;
 }
 
-const topN = (arr, key, n) => [...arr].sort((a, b) => b[key] - a[key]).slice(0, n);
+// 커밋되는 산출물의 안정성을 위해 동점 시 name/key/type 기준 결정적 2차 정렬(M2).
+const labelOf = (x) => String(x.name ?? x.key ?? x.type ?? "");
+const topN = (arr, key, n) =>
+  [...arr]
+    .sort((a, b) => (b[key] - a[key]) || labelOf(a).localeCompare(labelOf(b)))
+    .slice(0, n);
 
 function bucketRows(rowsByMember, members, field) {
-  const acc = new Map(); // key -> {n:Set, amount, visits, cuisine:Map}
+  const acc = new Map(); // key -> {members:Set, amount, visits, cuisine:Map, rests:Map}
   for (const [name, agg] of rowsByMember) {
     const dem = members.get(name);
     if (!dem || dem[field] == null) continue;
     const key = dem[field];
-    if (!acc.has(key)) acc.set(key, { members: new Set(), amount: 0, visits: 0, cuisine: new Map() });
+    if (!acc.has(key)) acc.set(key, { members: new Set(), amount: 0, visits: 0, cuisine: new Map(), rests: new Map() });
     const a = acc.get(key);
     a.members.add(name); a.amount += agg.amount; a.visits += agg.visits;
     for (const [c, v] of agg.cuisine) a.cuisine.set(c, (a.cuisine.get(c) || 0) + v);
+    for (const [m, v] of agg.rests) a.rests.set(m, (a.rests.get(m) || 0) + v); // 그룹 단골식당(I2)
   }
   return [...acc.entries()].map(([key, a]) => ({
     key, n: a.members.size,
     avgMeal: a.visits ? Math.round(a.amount / a.visits) : 0,
     topCuisine: topMapKey(a.cuisine),
-  })).sort((x, y) => y.n - x.n);
+    topRestaurant: topMapKey(a.rests, ""),
+  })).sort((x, y) => (y.n - x.n) || String(x.key).localeCompare(String(y.key)));
 }
-const topMapKey = (map) => [...map.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "기타";
+// 빈도 최다 키. 동점 시 키 사전순으로 결정적 선택(M2). map 비면 fallback 반환.
+const topMapKey = (map, fallback = "기타") =>
+  [...map.entries()].sort((a, b) => (b[1] - a[1]) || String(a[0]).localeCompare(String(b[0])))[0]?.[0] ?? fallback;
 
 // 가게단위로 가장 구체적인 음식종류·주소(시군구)를 전파.
 // 업종(주소)은 2023~24 행에만 있으므로, 그 가게의 모든 연도 행에 퍼뜨린다.
@@ -189,11 +207,11 @@ export function aggregate(rows, members, opts = {}) {
     return {
       id: dem?.id ?? "", name: a.name, party: a.party, origin: a.origin, matched: !!dem,
       visits: a.visits, amount: a.amount,
-      topRestaurants: [...a.rests.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([name, visits]) => ({ name, visits })),
+      topRestaurants: [...a.rests.entries()].sort((x, y) => (y[1] - x[1]) || String(x[0]).localeCompare(String(y[0]))).slice(0, 5).map(([name, visits]) => ({ name, visits })),
       cuisineMix: Object.fromEntries(a.cuisine), purposeMix: Object.fromEntries(a.purpose),
       districtRate: rate == null ? null : Math.round(rate * 100) / 100,
     };
-  }).sort((x, y) => y.amount - x.amount);
+  }).sort((x, y) => (y.amount - x.amount) || x.name.localeCompare(y.name));
 
   // 음식종류 전체 분포 (가게단위 전파된 cuisine 사용)
   const cui = new Map();

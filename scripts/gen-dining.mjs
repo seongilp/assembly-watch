@@ -20,7 +20,8 @@ const SOURCE = { name: "오마이뉴스·경향신문·뉴스타파", url: "http
 // gen-graph-data.mjs 와 동일 기준 유지(2020=쥐). 불일치 시 펀팩트 띠 분석이 어긋남.
 const ZODIAC = ["쥐","소","호랑이","토끼","용","뱀","말","양","원숭이","닭","개","돼지"];
 const zodiacOf = (birth) => { const y = parseInt(String(birth).slice(0, 4), 10); return Number.isFinite(y) ? ZODIAC[(((y - 2020) % 12) + 12) % 12] : null; };
-const ageBucket = (birth) => { const y = parseInt(String(birth).slice(0, 4), 10); if (!Number.isFinite(y)) return null; const a = 2026 - y; return `${Math.floor(a / 10) * 10}대`; };
+const NOW_YEAR = new Date().getFullYear();
+const ageBucket = (birth) => { const y = parseInt(String(birth).slice(0, 4), 10); if (!Number.isFinite(y)) return null; const a = NOW_YEAR - y; return `${Math.floor(a / 10) * 10}대`; };
 // wealth.json 전수 데이터로 버킷팅. 라벨/임계값은 펀팩트 그래프와 동일하게 유지.
 // 재산(억): wealth.members[].total, 평수: wealth.apt.byMember[id].
 const wealthBucket = (eok) => {
