@@ -151,6 +151,7 @@ export default defineNuxtConfig({
       "/quiz": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/schedule": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/dining": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시 + 브라우저 재검증
       "/members/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/votes/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
