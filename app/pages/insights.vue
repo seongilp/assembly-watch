@@ -203,7 +203,7 @@ useSeoMeta({
             :items="dn.restaurants.slice(0, 10).map((r) => ({ id: r.name, name: r.name, party: r.cuisine, origin: r.gu ?? '', photo: '', count: r.visits }))"
             unit="회" accent="#FF9500"
           />
-          <DiningBreakdown title="음식종류 분포(추정)" :rows="dn.cuisine.map((c) => ({ key: c.type, n: c.visits, avgMeal: Math.round(c.amount / Math.max(1, c.visits)), topCuisine: c.type }))" denom="전체 식당 지출 기준" />
+          <DiningBreakdown title="음식종류 분포(추정)" :rows="dn.cuisine.map((c) => ({ key: c.type, n: c.visits, avgMeal: Math.round(c.amount / Math.max(1, c.visits)), topCuisine: c.type, topRestaurant: '' }))" denom="전체 식당 지출 기준" />
         </div>
         <div class="grid md:grid-cols-2 gap-4">
           <DiningBreakdown title="정당별 평균 식대" :rows="dn.breakdowns.byParty" :denom="`현직 매칭 ${dn.coverage.matchedMembers}명`" />
