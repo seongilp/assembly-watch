@@ -3,6 +3,7 @@ import { mapColumns } from "../../scripts/lib/dining.mjs";
 import { FOOD_CATEGORIES, isFoodRow, parseAmount } from "../../scripts/lib/dining.mjs";
 import { normalizeMerchant, inferCuisine } from "../../scripts/lib/dining.mjs";
 import { guOf, originGu, inOwnDistrict } from "../../scripts/lib/dining.mjs";
+import { aggregate } from "../../scripts/lib/dining.mjs";
 
 describe("mapColumns", () => {
   it("기본 파일 헤더를 표준 키 인덱스로 매핑", () => {
@@ -102,5 +103,34 @@ describe("inOwnDistrict", () => {
     expect(inOwnDistrict("서울 영등포구", "서울 영등포구")).toBe(true);
     expect(inOwnDistrict("서울 강남구", "서울 영등포구")).toBe(false);
     expect(inOwnDistrict(null, "서울 영등포구")).toBe(false);
+  });
+});
+
+const rows = [
+  // {member, party, origin, amount, merchant, cuisine, category, gu}
+  { member:"강득구", party:"더불어민주당", origin:"경기 안양시", amount:96000, merchant:"한류관", cuisine:"한식", category:"간담회_식대", gu:"서울 영등포구" },
+  { member:"강득구", party:"더불어민주당", origin:"경기 안양시", amount:45000, merchant:"하동관", cuisine:"한식", category:"사무실_식대비", gu:"경기 안양시" },
+  { member:"강득구", party:"더불어민주당", origin:"경기 안양시", amount:-45000, merchant:"하동관", cuisine:"한식", category:"사무실_식대비", gu:"경기 안양시" }, // 상쇄
+];
+const members = new Map([
+  ["강득구", { id:"X1", name:"강득구", party:"더불어민주당", origin:"경기 안양시", ageBucket:"50대", gender:"남", zodiac:"토끼", wealthBucket:"10억 미만", pyeongBucket:"30평대" }],
+]);
+
+describe("aggregate", () => {
+  const out = aggregate(rows, members);
+  it("음수행을 상쇄해 합계 계산", () => {
+    const m = out.byMember.find((x) => x.name === "강득구");
+    expect(m.amount).toBe(96000); // 45000 - 45000 상쇄
+    expect(m.visits).toBe(1);     // 상쇄된 쌍 제외, 순방문 1
+  });
+  it("식당 랭킹 생성", () => {
+    expect(out.restaurants.find((r) => r.name === "한류관").amount).toBe(96000);
+  });
+  it("지역구 비율: 강득구는 모두 지역구 밖(영등포)", () => {
+    const d = out.district.onlyInDistrict.concat(out.district.neverInDistrict);
+    expect(out.byMember.find((x)=>x.name==="강득구").districtRate).toBe(0);
+  });
+  it("breakdowns 는 매칭 의원 기준 생성", () => {
+    expect(out.breakdowns.byParty.find((b) => b.key === "더불어민주당").n).toBe(1);
   });
 });

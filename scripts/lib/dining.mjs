@@ -96,3 +96,109 @@ export function originGu(origin) {
 }
 export const inOwnDistrict = (restaurantGu, memberGu) =>
   !!restaurantGu && !!memberGu && restaurantGu === memberGu;
+
+// 같은 의원·가게·금액의 음/양 쌍을 상쇄(정정·반환). 남은 양수 행만 집계.
+function netRows(rows) {
+  const neg = new Map();
+  for (const r of rows) if (r.amount < 0) {
+    const k = `${r.member}|${r.merchant}|${Math.abs(r.amount)}`;
+    neg.set(k, (neg.get(k) || 0) + 1);
+  }
+  const out = [];
+  for (const r of rows) {
+    if (r.amount <= 0) continue;
+    const k = `${r.member}|${r.merchant}|${r.amount}`;
+    if (neg.get(k) > 0) { neg.set(k, neg.get(k) - 1); continue; } // 상쇄
+    out.push(r);
+  }
+  return out;
+}
+
+const topN = (arr, key, n) => [...arr].sort((a, b) => b[key] - a[key]).slice(0, n);
+
+function bucketRows(rowsByMember, members, field) {
+  const acc = new Map(); // key -> {n:Set, amount, visits, cuisine:Map}
+  for (const [name, agg] of rowsByMember) {
+    const dem = members.get(name);
+    if (!dem || dem[field] == null) continue;
+    const key = dem[field];
+    if (!acc.has(key)) acc.set(key, { members: new Set(), amount: 0, visits: 0, cuisine: new Map() });
+    const a = acc.get(key);
+    a.members.add(name); a.amount += agg.amount; a.visits += agg.visits;
+    for (const [c, v] of agg.cuisine) a.cuisine.set(c, (a.cuisine.get(c) || 0) + v);
+  }
+  return [...acc.entries()].map(([key, a]) => ({
+    key, n: a.members.size,
+    avgMeal: a.visits ? Math.round(a.amount / a.visits) : 0,
+    topCuisine: topMapKey(a.cuisine),
+  })).sort((x, y) => y.n - x.n);
+}
+const topMapKey = (map) => [...map.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "기타";
+
+export function aggregate(rows, members, opts = {}) {
+  const RTOP = opts.restaurantTop ?? 200;
+  const net = netRows(rows);
+
+  // 식당 랭킹
+  const rest = new Map();
+  for (const r of net) {
+    if (!rest.has(r.merchant)) rest.set(r.merchant, { name: r.merchant, cuisine: r.cuisine, visits: 0, amount: 0, members: new Set(), gu: r.gu });
+    const x = rest.get(r.merchant); x.visits++; x.amount += r.amount; x.members.add(r.member);
+  }
+  const restaurants = topN([...rest.values()].map((x) => ({ ...x, members: x.members.size })), "visits", RTOP);
+
+  // 의원별
+  const byName = new Map();
+  for (const r of net) {
+    if (!byName.has(r.member)) byName.set(r.member, { name: r.member, party: r.party, origin: r.origin, visits: 0, amount: 0, inDist: 0, distKnown: 0, cuisine: new Map(), purpose: new Map(), rests: new Map() });
+    const a = byName.get(r.member);
+    a.visits++; a.amount += r.amount;
+    a.cuisine.set(r.cuisine, (a.cuisine.get(r.cuisine) || 0) + 1);
+    a.purpose.set(r.category, (a.purpose.get(r.category) || 0) + 1);
+    a.rests.set(r.merchant, (a.rests.get(r.merchant) || 0) + 1);
+    if (r.gu) { a.distKnown++; if (inOwnDistrict(r.gu, originGu(r.origin))) a.inDist++; }
+  }
+
+  const byMember = [...byName.values()].map((a) => {
+    const dem = members.get(a.name);
+    const rate = a.distKnown ? a.inDist / a.distKnown : null;
+    return {
+      id: dem?.id ?? "", name: a.name, party: a.party, origin: a.origin, matched: !!dem,
+      visits: a.visits, amount: a.amount,
+      topRestaurants: [...a.rests.entries()].sort((x, y) => y[1] - x[1]).slice(0, 5).map(([name, visits]) => ({ name, visits })),
+      cuisineMix: Object.fromEntries(a.cuisine), purposeMix: Object.fromEntries(a.purpose),
+      districtRate: rate == null ? null : Math.round(rate * 100) / 100,
+    };
+  }).sort((x, y) => y.amount - x.amount);
+
+  // 음식종류 전체 분포
+  const cui = new Map();
+  for (const r of net) { if (!cui.has(r.cuisine)) cui.set(r.cuisine, { type: r.cuisine, visits: 0, amount: 0 }); const x = cui.get(r.cuisine); x.visits++; x.amount += r.amount; }
+  const cuisine = topN([...cui.values()], "visits", 20);
+
+  // breakdowns (매칭 의원 기준)
+  const memberAgg = byName; // name -> agg
+  const breakdowns = {
+    byParty: bucketRows(memberAgg, members, "party"),
+    byAge: bucketRows(memberAgg, members, "ageBucket"),
+    byGender: bucketRows(memberAgg, members, "gender"),
+    byZodiac: bucketRows(memberAgg, members, "zodiac"),
+    byWealth: bucketRows(memberAgg, members, "wealthBucket"),
+    byPyeong: bucketRows(memberAgg, members, "pyeongBucket"),
+  };
+
+  // 지역구 only/never (지역구 의원 + distKnown>0)
+  const dist = byMember.filter((m) => m.districtRate != null && originGu(m.origin));
+  const proportional = byMember.filter((m) => !originGu(m.origin)).map((m) => ({ id: m.id, name: m.name }));
+  const addrKnown = net.filter((r) => r.gu).length;
+  return {
+    restaurants, byMember, cuisine, breakdowns,
+    district: {
+      addrCoverage: net.length ? Math.round((addrKnown / net.length) * 100) / 100 : 0,
+      onlyInDistrict: dist.filter((m) => m.districtRate === 1).map(pickDist),
+      neverInDistrict: dist.filter((m) => m.districtRate === 0).map(pickDist),
+      proportional,
+    },
+  };
+}
+const pickDist = (m) => ({ id: m.id, name: m.name, party: m.party, origin: m.origin, rate: m.districtRate });
