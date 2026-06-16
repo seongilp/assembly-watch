@@ -29,5 +29,10 @@ logs
 .dev.vars
 .dev.vars.*
 
+# KA-money cache (원본 xlsx, 대용량)
+.cache/ka-money/
+# 식당 주소 지오코딩 캐시(카카오 REST 재호출 방지)
+.cache/geocode-dining.json
+
 # baked member avatars(public/m/) 와 표결 데이터(votedata.json 등)는
 # CI 자동배포가 라이브 API 없이 빌드하도록 git 에 커밋한다(베이크).

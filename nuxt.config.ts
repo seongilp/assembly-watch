@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 
+// node-server 프리뷰 벤치 빌드: KV 없는 환경에서 메모리 캐시 사용
+const isNodeServerBuild = process.env.NITRO_PRESET === "node-server";
+
 // 빌드 전 생성된 member-details.json 으로 의원 상세 프리렌더 라우트 구성
 function memberRoutes(): string[] {
   try {
@@ -126,6 +129,7 @@ export default defineNuxtConfig({
         "/api/districts",
         "/api/shapes",
         "/api/bills-recent",
+        "/api/dining",
       ],
     },
   },
@@ -150,6 +154,7 @@ export default defineNuxtConfig({
       "/quiz": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/schedule": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/dining": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시 + 브라우저 재검증
       "/members/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/votes/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
@@ -168,7 +173,7 @@ export default defineNuxtConfig({
       // content-type·cache-control 을 입혀 브라우저/엣지 캐시까지 보장.
       // (swr 은 정적 미스 시 Worker 폴백용) 데이터는 배포 때만 바뀐다.
       ...Object.fromEntries(
-        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent"].map((n) => [
+        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent", "dining"].map((n) => [
           `/api/${n}`,
           { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
         ]),
@@ -176,10 +181,15 @@ export default defineNuxtConfig({
     },
     nitro: {
       storage: {
-        cache: { driver: "cloudflare-kv-binding", binding: "CACHE" },
+        // node-server 벤치 빌드(KV 바인딩 없음) 시 메모리 캐시로 폴백.
+        // 운영 Cloudflare Workers 에서는 KV 바인딩 사용.
+        cache: isNodeServerBuild
+          ? { driver: "memory" }
+          : { driver: "cloudflare-kv-binding", binding: "CACHE" },
       },
     },
   },
+
 
   shadcn: {
     prefix: "",

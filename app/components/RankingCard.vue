@@ -13,8 +13,9 @@ const props = withDefaults(
     accent?: string; // hex
     limit?: number;
     crown?: string; // 1위 칭호 (예: "불참왕")
+    hidePhoto?: boolean; // 아바타 대신 순위 배지 표시 (식당 랭킹 등 의원이 아닌 항목에 사용)
   }>(),
-  { metric: "count", unit: "", accent: "#3182F6", limit: 10, crown: "" },
+  { metric: "count", unit: "", accent: "#3182F6", limit: 10, crown: "", hidePhoto: false },
 );
 
 // 공동 순위(competition ranking): 동일 수치면 같은 순위, 다음 순위는 인원수만큼 건너뜀 (1,1,1,4…)
@@ -62,13 +63,18 @@ function valueOf(m: InsightMember) {
             class="w-5 text-center text-[13px] font-extrabold tabular-nums shrink-0"
             :style="{ color: rank <= 3 ? medal(rank) : 'var(--toss-gray-400)' }"
           >{{ rank }}</span>
-          <div class="relative shrink-0">
+          <div v-if="!hidePhoto" class="relative shrink-0">
             <MemberAvatar :id="m.id" :name="m.name" :party="m.party" :photo="m.photo" :size="36" />
             <Crown
               v-if="crown && rank === 1"
               class="absolute -top-2 -right-1.5 size-4 rotate-12 fill-[#FFB400] text-[#FFB400] drop-shadow"
             />
           </div>
+          <span
+            v-else
+            class="size-9 shrink-0 grid place-items-center rounded-full bg-toss-gray-100 text-[13px] font-extrabold tabular-nums"
+            :style="{ color: rank <= 3 ? medal(rank) : 'var(--toss-gray-500)' }"
+          >{{ rank }}</span>
           <div class="min-w-0 flex-1">
             <p class="flex items-center gap-1.5 text-[14px] font-bold text-toss-gray-900 group-hover:text-toss-blue truncate">
               {{ m.name }}

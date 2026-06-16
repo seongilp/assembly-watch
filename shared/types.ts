@@ -448,3 +448,84 @@ export interface MemberDetail {
   votes: MemberVote[];
   votesScanned: number;
 }
+
+// ─── 정치자금 식당 지출 (OhmyNews KA-money 2012~2024) ───
+
+export interface DiningRestaurant {
+  name: string;
+  cuisine: string;
+  visits: number;
+  amount: number;
+  members: number;
+  gu: string | null;
+}
+export interface DiningMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  matched: boolean;
+  visits: number;
+  amount: number;
+  topRestaurants: { name: string; visits: number }[];
+  cuisineMix: Record<string, number>;
+  purposeMix: Record<string, number>;
+  districtRate: number | null;
+}
+export interface DiningBreakdownRow {
+  key: string;
+  n: number;
+  avgMeal: number;
+  topCuisine: string;
+  topRestaurant: string;
+}
+export interface DiningDistrictMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  rate: number;
+}
+export interface DiningGroupBreakdown {
+  party: Record<string, number>;
+  age: Record<string, number>;
+  gender: Record<string, number>;
+  zodiac: Record<string, number>;
+  wealth: Record<string, number>;
+  pyeong: Record<string, number>;
+}
+export interface DiningMapPoint {
+  name: string;
+  lat: number;
+  lng: number;
+  cuisine: string;
+  gu: string | null;
+  visits: number;
+  amount: number;
+  groups: DiningGroupBreakdown;
+}
+export interface DiningData {
+  basis: string;
+  source: { name: string; url: string };
+  generatedAt: string;
+  years: number[];
+  coverage: { rows: number; matchedMembers: number; addrYears: number[]; mapPoints: number };
+  restaurants: DiningRestaurant[];
+  mapPoints: DiningMapPoint[];
+  byMember: DiningMember[];
+  cuisine: { type: string; visits: number; amount: number }[];
+  breakdowns: {
+    byParty: DiningBreakdownRow[];
+    byAge: DiningBreakdownRow[];
+    byGender: DiningBreakdownRow[];
+    byZodiac: DiningBreakdownRow[];
+    byWealth: DiningBreakdownRow[];
+    byPyeong: DiningBreakdownRow[];
+  };
+  district: {
+    addrCoverage: number;
+    onlyInDistrict: DiningDistrictMember[];
+    neverInDistrict: DiningDistrictMember[];
+    proportional: { id: string; name: string }[];
+  };
+}

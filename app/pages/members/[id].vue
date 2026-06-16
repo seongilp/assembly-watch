@@ -12,7 +12,7 @@ import {
   Crown,
   ChevronDown,
 } from "lucide-vue-next";
-import type { MemberDetail, Insights } from "#shared/types";
+import type { MemberDetail, Insights, DiningData } from "#shared/types";
 import { partyColor } from "~/lib/party";
 import { formatDate, voteStyle } from "~/lib/format";
 
@@ -32,6 +32,9 @@ const [{ data: insights }, { data: vinsights }, { data, pending }] = await Promi
   vinsightsReq,
   detailReq,
 ]);
+
+const { data: dining } = await useFetch<DiningData>("/api/dining", { key: "dining" });
+const myDining = computed(() => dining.value?.byMember.find((m) => m.id === route.params.id));
 
 const member = computed(() => data.value?.member ?? undefined);
 
@@ -328,6 +331,15 @@ const contacts = computed(() => {
       <ClientOnly>
         <MemberTwins :member-id="id" />
       </ClientOnly>
+
+      <!-- 정치자금 식당 미니 카드 -->
+      <section v-if="myDining && myDining.visits" class="mt-4 rounded-2xl border border-toss-gray-200 bg-card p-5">
+        <h2 class="font-bold text-toss-gray-900 mb-3">정치자금으로 자주 간 식당</h2>
+        <ul class="space-y-1 text-sm">
+          <li v-for="r in myDining.topRestaurants" :key="r.name" class="flex justify-between"><span class="font-semibold">{{ r.name }}</span><span class="text-toss-gray-500">{{ r.visits }}회</span></li>
+        </ul>
+        <NuxtLink to="/dining" class="mt-3 inline-block text-[13px] font-semibold text-toss-blue">정치자금 맛집 전체 보기 →</NuxtLink>
+      </section>
     </template>
 
     <div v-else class="space-y-4">

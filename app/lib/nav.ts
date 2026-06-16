@@ -6,6 +6,7 @@ import {
   Landmark,
   CalendarDays,
   Sparkles,
+  Utensils,
   Wand2,
   type LucideIcon,
 } from "lucide-vue-next";
@@ -25,5 +26,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: "/committees", label: "위원회", icon: Landmark, desc: "상임·특별위원회" },
   { to: "/schedule", label: "국회 일정", icon: CalendarDays, desc: "본회의·행사 일정" },
   { to: "/insights", label: "펀팩트", icon: Sparkles, desc: "의정활동 랭킹" },
+  { to: "/dining", label: "정치자금 맛집", icon: Utensils, desc: "정치인이 pick한 식당" },
   { to: "/quiz", label: "성향 테스트", icon: Wand2, desc: "나와 비슷한 의원 찾기" },
 ];
