@@ -21,20 +21,32 @@ const SOURCE = { name: "오마이뉴스·경향신문·뉴스타파", url: "http
 const ZODIAC = ["쥐","소","호랑이","토끼","용","뱀","말","양","원숭이","닭","개","돼지"];
 const zodiacOf = (birth) => { const y = parseInt(String(birth).slice(0, 4), 10); return Number.isFinite(y) ? ZODIAC[(((y - 2020) % 12) + 12) % 12] : null; };
 const ageBucket = (birth) => { const y = parseInt(String(birth).slice(0, 4), 10); if (!Number.isFinite(y)) return null; const a = 2026 - y; return `${Math.floor(a / 10) * 10}대`; };
-// graph-data.json 의 버킷({label, members:[{id,name,party}]})에서 name→label 맵을 만든다.
-// 펀팩트 그래프와 동일한 분류를 재사용해 평수/재산 분포를 일관되게 유지.
-function bucketNameMap(buckets) {
-  const m = new Map();
-  for (const b of buckets || []) for (const mem of b.members || []) m.set(mem.name, b.label);
-  return m;
-}
+// wealth.json 전수 데이터로 버킷팅. 라벨/임계값은 펀팩트 그래프와 동일하게 유지.
+// 재산(억): wealth.members[].total, 평수: wealth.apt.byMember[id].
+const wealthBucket = (eok) => {
+  if (eok == null) return null;
+  if (eok < 10) return "10억 미만";
+  if (eok < 30) return "10~30억";
+  if (eok < 50) return "30~50억";
+  if (eok < 100) return "50~100억";
+  return "100억 이상";
+};
+const pyeongBucket = (p) => {
+  if (p == null) return null;
+  if (p < 20) return "20평 미만";
+  if (p < 30) return "20평대";
+  if (p < 40) return "30평대";
+  if (p < 50) return "40평대";
+  if (p < 60) return "50평대";
+  return "60평 이상";
+};
 
 function buildMemberIndex() {
   const members = JSON.parse(readFileSync(join(root, "server/assets/members.json"), "utf8"));
   const arr = Array.isArray(members) ? members : members.rows ?? Object.values(members);
-  const graph = existsSync(join(root, "server/assets/graph-data.json")) ? JSON.parse(readFileSync(join(root, "server/assets/graph-data.json"), "utf8")) : {};
-  const pyeongByName = bucketNameMap(graph.pyeong?.buckets);       // ~197명
-  const wealthByName = bucketNameMap(graph.wealthBands?.buckets);  // ~279명
+  const wealth = existsSync(join(root, "server/assets/wealth.json")) ? JSON.parse(readFileSync(join(root, "server/assets/wealth.json"), "utf8")) : { members: [], apt: { byMember: {} } };
+  const totalById = new Map((wealth.members || []).map((m) => [m.id, m.total]));  // 재산 전수(279명)
+  const pyeongById = new Map(Object.entries(wealth.apt?.byMember || {}));          // 평수 전수(197명)
   const nameCount = {};
   for (const m of arr) nameCount[m.name] = (nameCount[m.name] || 0) + 1;
   const idx = new Map();
@@ -43,7 +55,7 @@ function buildMemberIndex() {
     idx.set(m.name, {
       id: m.id, name: m.name, party: (m.party || "").split("/")[0]?.trim() || "무소속", origin: m.origin,
       ageBucket: ageBucket(m.birth), gender: m.sex || null, zodiac: zodiacOf(m.birth),
-      wealthBucket: wealthByName.get(m.name) ?? null, pyeongBucket: pyeongByName.get(m.name) ?? null,
+      wealthBucket: wealthBucket(totalById.get(m.id)), pyeongBucket: pyeongBucket(pyeongById.get(m.id)),
     });
   }
   return idx;
