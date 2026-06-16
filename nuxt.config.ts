@@ -126,6 +126,7 @@ export default defineNuxtConfig({
         "/api/districts",
         "/api/shapes",
         "/api/bills-recent",
+        "/api/dining",
       ],
     },
   },
@@ -168,7 +169,7 @@ export default defineNuxtConfig({
       // content-type·cache-control 을 입혀 브라우저/엣지 캐시까지 보장.
       // (swr 은 정적 미스 시 Worker 폴백용) 데이터는 배포 때만 바뀐다.
       ...Object.fromEntries(
-        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent"].map((n) => [
+        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent", "dining"].map((n) => [
           `/api/${n}`,
           { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
         ]),
