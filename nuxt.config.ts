@@ -125,9 +125,23 @@ export default defineNuxtConfig({
     },
   },
 
-  // Cloudflare Workers (Static Assets) 배포 프리셋
+  // nuxt 4.5 부터 tsconfig.node.json 이 types:[] 로 생성 — nuxt.config.ts 의 process 등
+  // Node 전역을 위해 @types/node 를 명시 지정한다.
+  typescript: {
+    nodeTsConfig: { compilerOptions: { types: ["node"] } },
+  },
+
+  // Cloudflare Workers (Static Assets) 배포 프리셋.
+  // NITRO_PRESET=node-server 면 ebs 홈서버용 Node 빌드 (cloudflare:workers 를 심으로 앨리어싱).
   nitro: {
-    preset: "cloudflare_module",
+    preset: isNodeServerBuild ? "node-server" : "cloudflare_module",
+    ...(isNodeServerBuild
+      ? {
+          alias: {
+            "cloudflare:workers": new URL("./server/cf-compat.ts", import.meta.url).pathname,
+          },
+        }
+      : {}),
     cloudflare: {
       nodeCompat: true,
       deployConfig: false, // wrangler.jsonc 를 직접 관리

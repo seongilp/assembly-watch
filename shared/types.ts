@@ -346,7 +346,6 @@ export interface GraphData {
   }[];
   closeBill: {
     name: string;
-    no: string;
     date: string;
     committee: string;
     procResult: string;
