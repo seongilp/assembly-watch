@@ -4,3 +4,15 @@ allowBuilds:
   '@parcel/watcher': false
   esbuild: false
   vue-demi: false
+  workerd: false
+
+# 전이 의존성 보안 패치 — 취약 범위에 걸리는 버전만 최소 패치선으로 강제
+# (audit: tar/brace-expansion/nanoid/postcss/shell-quote DoS·경로탐색 계열)
+overrides:
+  'tar@<7.5.21': '>=7.5.21'
+  'brace-expansion@^5.0.0': '>=5.0.9'
+  'brace-expansion@>=5 <5.0.9': '>=5.0.9'
+  'esbuild@>=0.27.3 <0.28.1': '>=0.28.1'
+  'nanoid@<3.3.18': '>=3.3.18'
+  'postcss@<8.5.23': '>=8.5.23'
+  'shell-quote@<1.10.0': '>=1.10.0'
