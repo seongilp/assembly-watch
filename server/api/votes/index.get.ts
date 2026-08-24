@@ -1,3 +1,4 @@
+import type { H3Event } from "h3";
 import type { VoteSummary, Paged } from "#shared/types";
 import votesList from "../../assets/votes-list.json";
 
@@ -7,14 +8,24 @@ const ALL = votesList as VoteSummary[];
  * 본회의 표결 목록 — 베이크된 스냅샷(전체 의안)에서 서빙. 라이브 API 없음.
  *  ?page=&size=  페이지네이션 / ?votedOnly=1 집계있는것 / ?dissent=1 반대표있는것 / ?q= 검색
  */
+/**
+ * 요청 파라미터 정규화 — 핸들러와 캐시 키가 반드시 같은 로직을 공유한다.
+ * 원본 쿼리를 키에 그대로 쓰면 q/page 조합 하나하나가 KV 엔트리를 무한 생성한다.
+ */
+function voteListParams(event: H3Event) {
+  const query = getQuery(event);
+  return {
+    q: String(query.q ?? "").trim().slice(0, 80),
+    votedOnly: String(query.votedOnly ?? "") === "1",
+    dissent: String(query.dissent ?? "") === "1",
+    page: Math.min(100_000, Math.max(1, Number(query.page) || 1)),
+    size: Math.min(100, Math.max(1, Number(query.size) || 20)),
+  };
+}
+
 export default defineCachedEventHandler(
   async (event): Promise<Paged<VoteSummary>> => {
-    const query = getQuery(event);
-    const q = String(query.q ?? "").trim();
-    const votedOnly = String(query.votedOnly ?? "") === "1";
-    const dissent = String(query.dissent ?? "") === "1";
-    const page = Math.max(1, Number(query.page) || 1);
-    const size = Math.min(100, Math.max(1, Number(query.size) || 20));
+    const { q, votedOnly, dissent, page, size } = voteListParams(event);
 
     let rows = ALL;
     if (votedOnly) rows = rows.filter((v) => v.total != null);
@@ -38,8 +49,8 @@ export default defineCachedEventHandler(
     maxAge: 60 * 10,
     name: "votes",
     getKey: (event) => {
-      const q = getQuery(event);
-      return `${q.page ?? 1}:${q.size ?? 20}:${q.votedOnly ?? ""}:${q.dissent ?? ""}:${q.q ?? ""}`;
+      const p = voteListParams(event);
+      return `${p.page}:${p.size}:${p.votedOnly ? "1" : ""}:${p.dissent ? "1" : ""}:${p.q}`;
     },
   },
 );

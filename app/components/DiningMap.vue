@@ -2,7 +2,7 @@
 import { Map as MapIcon } from "lucide-vue-next";
 import type { DiningMapPoint, DiningGroupBreakdown } from "#shared/types";
 import { partyColor } from "~/lib/party";
-
+import { esc } from "~/lib/safe";
 const props = defineProps<{ points: DiningMapPoint[] }>();
 
 type Dim = keyof DiningGroupBreakdown;
@@ -43,7 +43,7 @@ function color(p: DiningMapPoint) {
 }
 function markerHtml(p: DiningMapPoint, c: number) {
   const t = c / maxC.value, size = Math.round(20 + t * 34);
-  return `<div title="${p.name} · ${c}회" style="cursor:pointer;width:${size}px;height:${size}px;border-radius:50%;
+  return `<div title="${esc(p.name)} · ${c}회" style="cursor:pointer;width:${size}px;height:${size}px;border-radius:50%;
     background:${color(p)};opacity:.85;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.3);
     display:grid;place-items:center;color:#fff;font:700 ${Math.max(9, Math.round(size * 0.32))}px Pretendard,sans-serif;">${c}</div>`;
 }

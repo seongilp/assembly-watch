@@ -34,7 +34,7 @@ pnpm exec wrangler secret put IG_PREVIEW_TOKEN   # 드라이런 가드(임의 �
 ```
 
 ## 7. 게시 확인
-- 드라이런: `https://asm.zihado.com/api/ig/preview?token=<IG_PREVIEW_TOKEN>` → slug·캡션·imageUrl 확인
+- 드라이런: `curl -H "Authorization: Bearer <IG_PREVIEW_TOKEN>" https://asm.zihado.com/api/ig/preview` → slug·캡션·imageUrl 확인 (토큰은 헤더로만 전달 — URL 에 넣으면 observability 로그에 기록됨)
 - 이미지: `https://asm.zihado.com/og/terms.png`
 - 앱은 개발 모드여도 **본인 계정** 게시는 App Review 없이 동작한다.
 

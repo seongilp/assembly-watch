@@ -15,6 +15,7 @@ import {
 import type { MemberDetail, Insights, DiningMemberStats } from "#shared/types";
 import { partyColor } from "~/lib/party";
 import { formatDate, voteStyle } from "~/lib/format";
+import { safeUrl } from "~/lib/safe";
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
@@ -111,7 +112,7 @@ const contacts = computed(() => {
   return [
     m.tel && { icon: Phone, label: m.tel, href: `tel:${m.tel}` },
     m.email && { icon: Mail, label: m.email, href: `mailto:${m.email}` },
-    m.homepage && { icon: Globe, label: "홈페이지", href: m.homepage },
+    m.homepage && safeUrl(m.homepage) && { icon: Globe, label: "홈페이지", href: safeUrl(m.homepage)! },
   ].filter(Boolean) as { icon: any; label: string; href: string }[];
 });
 </script>
@@ -234,7 +235,7 @@ const contacts = computed(() => {
             <ul class="divide-y divide-toss-gray-100">
               <li v-for="b in bills?.rows" :key="b.id">
                 <a
-                  :href="b.link"
+                  :href="safeUrl(b.link)"
                   target="_blank"
                   class="group flex items-start justify-between gap-3 py-3"
                 >

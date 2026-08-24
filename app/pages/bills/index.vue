@@ -2,6 +2,7 @@
 import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, Users } from "lucide-vue-next";
 import type { Bill, BillProposers, MemberListItem } from "#shared/types";
 import { formatDate, padName } from "~/lib/format";
+import { safeUrl } from "~/lib/safe";
 
 const route = useRoute();
 const router = useRouter();
@@ -120,7 +121,7 @@ useHead({ title: "의안 · 의정감시" });
                 </span>
               </div>
             </button>
-            <a :href="b.link" target="_blank" class="shrink-0 grid place-items-center size-8 rounded-lg text-toss-gray-300 hover:bg-toss-gray-100 hover:text-toss-blue" title="의안원문(제안이유 등)">
+            <a v-if="safeUrl(b.link)" :href="safeUrl(b.link)" target="_blank" class="shrink-0 grid place-items-center size-8 rounded-lg text-toss-gray-300 hover:bg-toss-gray-100 hover:text-toss-blue" title="의안원문(제안이유 등)">
               <ExternalLink class="size-4" />
             </a>
           </div>
@@ -129,7 +130,7 @@ useHead({ title: "의안 · 의정감시" });
           <div v-if="openId === b.id" class="mt-3 border-t border-toss-gray-100 pt-3">
             <p v-if="proposers[b.id] === 'loading'" class="text-[13px] text-toss-gray-400">발의의원 불러오는 중…</p>
             <p v-else-if="proposers[b.id] === 'error' || (proposers[b.id] && (proposers[b.id] as BillProposers).total === 0)" class="text-[13px] text-toss-gray-400">
-              명단을 불러오지 못했습니다. <a :href="b.link" target="_blank" class="text-toss-blue font-semibold">의안원문 보기</a>
+              명단을 불러오지 못했습니다. <a v-if="safeUrl(b.link)" :href="safeUrl(b.link)" target="_blank" class="text-toss-blue font-semibold">의안원문 보기</a>
             </p>
             <template v-else-if="proposers[b.id]">
               <div class="flex items-center gap-2 mb-2.5 text-[12px] text-toss-gray-500">

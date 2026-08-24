@@ -89,9 +89,13 @@ export async function fetchAssembly<T = Record<string, unknown>>(
     });
     raw = typeof text === "string" ? JSON.parse(text) : text;
   } catch (err) {
+    // ofetch FetchError.message 에 outbound URL(?KEY=<secret> 포함) 이 그대로 들어있다.
+    // 절대 클라이언트로 전달 금지 — 상세는 서버 로그(observability)에만 남긴다.
+    console.error(`[assembly] ${apiCode} 호출 실패:`, (err as Error).message);
     throw createError({
       statusCode: 502,
-      statusMessage: `국회 API 호출 실패: ${(err as Error).message}`,
+      statusMessage: "국회 API 호출 실패",
+      message: "국회 API 호출 실패",
     });
   }
 

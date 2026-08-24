@@ -2,6 +2,7 @@
 import { Landmark, ChevronRight, ChevronDown, FileText, Download, ExternalLink, Video } from "lucide-vue-next";
 import type { CommitteeListItem } from "#shared/types";
 import { formatDate } from "~/lib/format";
+import { safeUrl } from "~/lib/safe";
 
 const { data, pending, error } = await useFetch<{ rows: CommitteeListItem[] }>(
   "/api/committees",
@@ -76,8 +77,8 @@ useHead({ title: "위원회 · 의정감시" });
                   >
                     요약 <ChevronDown class="size-3 transition-transform" :class="openSummary.has(m.id) ? 'rotate-180' : ''" />
                   </button>
-                  <a v-if="m.vod" :href="m.vod" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2 py-1 text-[11px] font-bold text-toss-gray-600 hover:bg-toss-gray-200"><Video class="size-3" />영상</a>
-                  <a v-if="m.pdf" :href="m.pdf" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-blue-light px-2 py-1 text-[11px] font-bold text-toss-blue-dark hover:opacity-80"><Download class="size-3" />PDF</a>
+                  <a v-if="safeUrl(m.vod)" :href="safeUrl(m.vod)" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-gray-100 px-2 py-1 text-[11px] font-bold text-toss-gray-600 hover:bg-toss-gray-200"><Video class="size-3" />영상</a>
+                  <a v-if="safeUrl(m.pdf)" :href="safeUrl(m.pdf)" target="_blank" class="shrink-0 inline-flex items-center gap-1 rounded-lg bg-toss-blue-light px-2 py-1 text-[11px] font-bold text-toss-blue-dark hover:opacity-80"><Download class="size-3" />PDF</a>
                 </div>
 
                 <!-- 요약 인라인 펼침 (빌드 베이크 — 즉시) -->
@@ -92,7 +93,7 @@ useHead({ title: "위원회 · 의정감시" });
                     <p class="text-[11px] font-bold text-toss-gray-500 mb-1.5">발언·참석 위원 {{ m.speakers.length }}</p>
                     <MinuteSpeakers :speakers="m.speakers" />
                   </div>
-                  <a :href="m.summary" target="_blank" class="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-toss-blue hover:text-toss-blue-dark">
+                  <a v-if="safeUrl(m.summary)" :href="safeUrl(m.summary)" target="_blank" class="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-toss-blue hover:text-toss-blue-dark">
                     회의록 원문 보기 <ExternalLink class="size-3.5" />
                   </a>
                 </div>

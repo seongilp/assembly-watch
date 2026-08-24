@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Utensils } from "lucide-vue-next";
 import type { DiningData } from "#shared/types";
+import { safeUrl } from "~/lib/safe";
 
 const { data } = await useFetch<DiningData>("/api/dining", { key: "dining" });
 
@@ -62,7 +63,7 @@ useSeoMeta({
     </div>
 
     <p class="mt-4 text-[11px] text-toss-gray-400">
-      자료: <a :href="data?.source.url" target="_blank" rel="noopener" class="font-semibold hover:text-toss-blue">{{ data?.source.name }}</a>
+      자료: <a v-if="safeUrl(data?.source.url)" :href="safeUrl(data?.source.url)" target="_blank" rel="noopener" class="font-semibold hover:text-toss-blue">{{ data?.source.name }}</a>
       · {{ data?.basis }} · 음식종류는 가게명·업종 기반 추정입니다.
     </p>
   </div>

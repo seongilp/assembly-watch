@@ -2,6 +2,7 @@
 import { ChevronDown, MapPin, ArrowLeft } from "lucide-vue-next";
 import type { DiningRestaurantDetail } from "#shared/types";
 import { normalizeParty } from "~/lib/party";
+import { esc } from "~/lib/safe";
 
 const route = useRoute();
 const id = route.params.id as string;
@@ -63,7 +64,7 @@ onMounted(async () => {
         white-space:nowrap;cursor:default;
         position:relative;
       ">
-        ${d.value.name}
+        ${esc(d.value.name)}
         <span style="
           position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
           width:0;height:0;

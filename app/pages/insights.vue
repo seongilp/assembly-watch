@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FileText, FileX, UserX, ThumbsUp, ThumbsDown, MinusCircle, CalendarX, Award, Sparkles, Trophy, Network, Wallet, Building, TrendingUp, Target, MessageCircleOff, Telescope, Utensils } from "lucide-vue-next";
 import type { Insights, VoteInsights, GraphData, WealthData, InsightMember, VoteAnalysisTop, DiningData } from "#shared/types";
+import { safeUrl } from "~/lib/safe";
 
 const route = useRoute();
 const router = useRouter();
@@ -221,7 +222,7 @@ useSeoMeta({
           <DiningMap v-if="dn.mapPoints?.length" :points="dn.mapPoints" />
         </ClientOnly>
         <DiningDistrictLists :district="dn.district" />
-        <p class="text-[11px] text-toss-gray-400">자료: <a :href="dn.source.url" target="_blank" rel="noopener" class="font-semibold hover:text-toss-blue">{{ dn.source.name }}</a> · {{ dn.basis }}</p>
+        <p class="text-[11px] text-toss-gray-400">자료: <a v-if="safeUrl(dn.source.url)" :href="safeUrl(dn.source.url)" target="_blank" rel="noopener" class="font-semibold hover:text-toss-blue">{{ dn.source.name }}</a> · {{ dn.basis }}</p>
       </div>
       <p v-else class="text-toss-gray-400 py-10 text-center">불러오는 중…</p>
     </template>
