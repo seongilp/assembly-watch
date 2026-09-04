@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: anthropics/claude-code-action@c81e3bc69d1b18badbb63ba39581218f02421678 # v1.0.201
+      - uses: anthropics/claude-code-action@8251c103ac8c1d761882c86aba1412c7f583c844 # v1.0.213
         with:
           # Claude 구독(Pro/Max) OAuth 토큰. 로컬에서 `claude setup-token` 으로 생성 후
           # 저장소 Secret 에 CLAUDE_CODE_OAUTH_TOKEN 으로 등록.
