@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 const XLSX = createRequire(import.meta.url)("xlsx");
-import { mapColumns, isFoodRow, parseAmount, normalizeMerchant, inferCuisine, guOf, aggregate } from "./lib/dining.mjs";
+import { mapColumns, isFoodRow, parseAmount, normalizeMerchant, inferCuisine, guOf, aggregate, normalizeAddress } from "./lib/dining.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const DIR = process.env.KA_MONEY_DIR || join(root, ".cache/ka-money");
@@ -109,14 +109,29 @@ function restKey() {
   if (process.env.KAKAO_REST_KEY) return process.env.KAKAO_REST_KEY;
   try { return readFileSync(join(root, ".env"), "utf8").match(/^KAKAO_REST_KEY=(.+)$/m)?.[1]?.trim() ?? ""; } catch { return ""; }
 }
-async function geocode(addr, key, cache) {
-  if (cache[addr] !== undefined) return cache[addr];
-  let v = null;
+async function kakaoLookup(url, key) {
   try {
-    const r = await fetch(`https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(addr)}`, { headers: { Authorization: `KakaoAK ${key}` } });
+    const r = await fetch(url, { headers: { Authorization: `KakaoAK ${key}` } });
     const doc = (await r.json())?.documents?.[0];
-    if (doc) v = { lat: +doc.y, lng: +doc.x };
-  } catch { /* 네트워크 오류 → null 캐시 */ }
+    return doc ? { lat: +doc.y, lng: +doc.x } : null;
+  } catch { return null; } // 네트워크 오류 → null
+}
+const addrUrl = (q) => `https://dapi.kakao.com/v2/local/search/address.json?query=${encodeURIComponent(q)}`;
+const kwUrl = (q) => `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(q)}&category_group_code=FD6,CE7&size=1`;
+
+/**
+ * 주소 → 좌표. 원본 주소는 공백이 날아가고 OCR 오타가 섞여 있어 그대로는 절반 가까이 실패한다.
+ *  1) 정규화 주소(괄호·층 제거, 오타 교정)로 주소검색
+ *  2) 원본 주소로 주소검색
+ *  3) "구 + 가게명" 키워드 검색(음식점·카페 카테고리로 한정)
+ * 캐시 키는 주소 — 같은 주소를 두 번 조회하지 않는다(가게명 폴백은 주소가 있는 식당에만 쓴다).
+ */
+async function geocode(addr, key, cache, name = "", gu = null) {
+  if (cache[addr] !== undefined) return cache[addr];
+  const norm = normalizeAddress(addr);
+  let v = norm ? await kakaoLookup(addrUrl(norm), key) : null;
+  if (!v) v = await kakaoLookup(addrUrl(addr), key);
+  if (!v && name) v = await kakaoLookup(kwUrl(`${gu ? gu + " " : ""}${name}`), key);
   cache[addr] = v;
   return v;
 }
@@ -129,7 +144,7 @@ async function geocodeRestaurants(restaurants) {
   const cand = restaurants.filter((r) => r.addr).slice(0, +(process.env.MAP_TOP || 500));
   const geoByName = new Map();
   for (const r of cand) {
-    const geo = await geocode(r.addr, key, cache);
+    const geo = await geocode(r.addr, key, cache, r.name, r.gu);
     if (geo) geoByName.set(r.name, geo);
     await new Promise((res) => setTimeout(res, 60));
   }

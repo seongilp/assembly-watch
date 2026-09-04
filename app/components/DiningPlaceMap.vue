@@ -16,12 +16,23 @@ let overlays: any[] = [];
 
 const maxVisits = computed(() => Math.max(1, ...props.points.map((p) => p.visits)));
 
+// 방문수는 한쪽으로 크게 쏠려 있다(1회 ~ 2600회). 선형으로 두면 상위 몇 곳만 커지고
+// 나머지가 전부 같은 색으로 뭉개지므로 로그 스케일로 편다.
+const scale = (visits: number) =>
+  Math.log(Math.max(1, visits)) / Math.log(Math.max(2, maxVisits.value));
+
+// 파랑(적음) → 빨강(많음) RGB 보간 — DiningBreakdown 의 heat 과 같은 색 체계.
+function heat(t: number) {
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * t);
+  return `rgb(${mix(0x31, 0xf0)},${mix(0x82, 0x44)},${mix(0xf6, 0x52)})`;
+}
+
 function markerHtml(p: DiningMapPoint) {
-  const t = p.visits / maxVisits.value;
-  const size = Math.round(20 + t * 34);
+  const t = scale(p.visits);
+  const size = Math.round(20 + t * 40);
   const on = props.highlight && p.name === props.highlight;
   return `<div title="${esc(p.name)} · ${p.visits}회" style="cursor:pointer;width:${size}px;height:${size}px;
-    border-radius:50%;background:${on ? "#FF3B30" : "#3182F6"};opacity:.85;border:2px solid #fff;
+    border-radius:50%;background:${heat(t)};opacity:.85;border:2px solid ${on ? "#111" : "#fff"};
     box-shadow:0 1px 6px rgba(0,0,0,.3);display:grid;place-items:center;color:#fff;
     font:700 ${Math.max(9, Math.round(size * 0.32))}px Pretendard,sans-serif;">${p.visits}</div>`;
 }
@@ -84,7 +95,7 @@ onBeforeUnmount(clear);
   <div class="relative">
     <div
       ref="mapEl"
-      class="w-full h-[460px] lg:h-[560px] rounded-2xl overflow-hidden bg-toss-gray-100"
+      class="w-full h-[70vh] min-h-[460px] lg:h-[78vh] lg:min-h-[640px] rounded-2xl overflow-hidden bg-toss-gray-100"
     />
     <p
       v-if="status === 'error'"
@@ -96,7 +107,13 @@ onBeforeUnmount(clear);
       v-else-if="status === 'ready'"
       class="absolute left-3 top-3 z-10 rounded-lg bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-toss-gray-500 card-shadow pointer-events-none"
     >
-      표시 {{ points.length }}곳 · 마커 크기 = 방문수
+      표시 {{ points.length }}곳
+      <span class="ml-1 inline-flex items-center gap-1 align-middle">
+        · 방문
+        <span class="inline-block h-2 w-14 rounded-full align-middle"
+          style="background:linear-gradient(90deg,rgb(49,130,246),rgb(168,99,164),rgb(240,68,82))" />
+        많음
+      </span>
     </div>
     <p
       v-if="status === 'ready' && points.length === 0"

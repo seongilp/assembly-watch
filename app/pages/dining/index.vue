@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { List, Map as MapIcon } from "lucide-vue-next";
+import { List, Map as MapIcon, Trophy } from "lucide-vue-next";
 import type { DiningData } from "#shared/types";
 import { safeUrl } from "~/lib/safe";
 
@@ -13,7 +13,7 @@ const applyQuery = (v: unknown) => { if (typeof v === "string") q.value = v; };
 onMounted(() => applyQuery(route.query.q));
 watch(() => route.query.q, applyQuery);
 
-const view = ref<"list" | "map">("list");
+const view = ref<"list" | "map" | "rank">("list");
 const cuisine = ref<string>("전체");
 
 // 칩 순서는 방문수 순(data.cuisine)을 따른다 — 자주 쓰는 종류가 앞에 온다.
@@ -58,7 +58,7 @@ useSeoMeta({
         <Input v-model="q" placeholder="식당 검색" class="max-w-xs" />
         <div class="inline-flex rounded-lg bg-toss-gray-100 p-0.5">
           <button
-            v-for="v in ([{ k: 'list', label: '목록', icon: List }, { k: 'map', label: '지도', icon: MapIcon }] as const)"
+            v-for="v in ([{ k: 'list', label: '목록', icon: List }, { k: 'rank', label: '랭킹', icon: Trophy }, { k: 'map', label: '지도', icon: MapIcon }] as const)"
             :key="v.k" type="button" @click="view = v.k"
             class="inline-flex items-center gap-1 rounded-md px-3 py-1 text-[13px] font-semibold transition-colors"
             :class="view === v.k ? 'bg-card text-toss-gray-900 card-shadow' : 'text-toss-gray-500 hover:text-toss-gray-800'"
@@ -77,10 +77,12 @@ useSeoMeta({
       </div>
     </div>
 
-    <ClientOnly v-if="view === 'map'">
+    <DiningRanking v-if="view === 'rank'" :restaurants="restaurants" />
+
+    <ClientOnly v-else-if="view === 'map'">
       <DiningPlaceMap :points="points" :highlight="q.trim()" />
       <template #fallback>
-        <div class="w-full h-[460px] lg:h-[560px] rounded-2xl bg-toss-gray-100" />
+        <div class="w-full h-[70vh] min-h-[460px] lg:h-[78vh] lg:min-h-[640px] rounded-2xl bg-toss-gray-100" />
       </template>
     </ClientOnly>
 

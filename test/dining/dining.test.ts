@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mapColumns } from "../../scripts/lib/dining.mjs";
 import { FOOD_CATEGORIES, isFoodRow, parseAmount } from "../../scripts/lib/dining.mjs";
 import { normalizeMerchant, inferCuisine } from "../../scripts/lib/dining.mjs";
-import { guOf, originGu, inOwnDistrict } from "../../scripts/lib/dining.mjs";
+import { guOf, originGu, inOwnDistrict, normalizeAddress } from "../../scripts/lib/dining.mjs";
 import { aggregate } from "../../scripts/lib/dining.mjs";
 
 describe("mapColumns", () => {
@@ -294,5 +294,46 @@ describe("aggregate — 식당 안정 id + details(방문 의원·연도별 추�
   it("id 가 결정적(동일 입력 → 동일 매핑)", () => {
     const out2 = aggregate(r, members);
     expect(out2.restaurants.map((x) => `${x.id}:${x.name}`)).toEqual(out.restaurants.map((x) => `${x.id}:${x.name}`));
+  });
+});
+
+describe("normalizeAddress", () => {
+  it("괄호(법정동·건물명)와 층·호 접미사를 떼어낸다", () => {
+    expect(normalizeAddress("서울특별시영등포구은행로3(여의도동,익스콘벤처타워)1층"))
+      .toBe("서울특별시 영등포구 은행로 3");
+    expect(normalizeAddress("서울특별시영등포구국회대로800(여의도동,여의도파라곤)113호"))
+      .toBe("서울특별시 영등포구 국회대로 800");
+    expect(normalizeAddress("서울특별시 영등포구 여의대방로 379 (여의도동, 제일빌딩) 210~211호"))
+      .toBe("서울특별시 영등포구 여의대방로 379");
+  });
+
+  it("붙어 있는 도로명 주소에 공백을 넣는다", () => {
+    expect(normalizeAddress("서울특별시영등포구국회대로76길16(여의도동)2층"))
+      .toBe("서울특별시 영등포구 국회대로76길 16");
+  });
+
+  it("흔한 OCR 오타를 고친다", () => {
+    expect(normalizeAddress("서울특별시영동포구의사당대르1(여의도동,국회의원회관)"))
+      .toBe("서울특별시 영등포구 의사당대로 1");
+    expect(normalizeAddress("서울특별시영등포구국희대로800(여의도동,여의도파라곤)지하1층"))
+      .toBe("서울특별시 영등포구 국회대로 800");
+    expect(normalizeAddress("서울특별시영등포구극희대로72길17(여의도동,KCC파크타운)"))
+      .toBe("서울특별시 영등포구 국회대로72길 17");
+    expect(normalizeAddress("서울윽별시마포구숭문길22-3(염리동)1층"))
+      .toBe("서울특별시 마포구 숭문길 22-3");
+  });
+
+  it("이미 정상인 주소는 그대로 둔다", () => {
+    expect(normalizeAddress("서울특별시 중구 소공로 112")).toBe("서울특별시 중구 소공로 112");
+  });
+
+  it("건물번호 없이 길 이름만 남으면 null (엉뚱한 좌표 방지)", () => {
+    // "…70길18" + "1층" 이 붙어 원본이 모호하다. 국회대로 70 으로 축약하면 다른 건물이 된다.
+    expect(normalizeAddress("서울영등포구국회대로70길181층")).toBeNull();
+  });
+
+  it("도로명을 못 찾으면 null (지번·손상 주소)", () => {
+    expect(normalizeAddress("세시잉포구극회q로72길21(여의도S,민일디I청리벙9)")).toBeNull();
+    expect(normalizeAddress("")).toBeNull();
   });
 });

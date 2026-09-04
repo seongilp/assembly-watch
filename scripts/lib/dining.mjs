@@ -286,3 +286,46 @@ export function aggregate(rows, members, opts = {}) {
   };
 }
 const pickDist = (m) => ({ id: m.id, name: m.name, party: m.party, origin: m.origin, rate: m.districtRate });
+
+// --- 주소 정규화 (지오코딩 전처리) ---
+// KA-money 원본 주소는 공백이 날아가고 OCR 오타가 섞여 들어온다.
+//   "서울특별시영동포구의사당대르1(여의도동,국회의원회관)" → "서울특별시 영등포구 의사당대로 1"
+// 카카오 주소검색은 괄호·층수가 붙으면 못 찾으므로 도로명+건물번호까지만 남긴다.
+
+/** 실제로 관측된 OCR 오탈자만 좁게 교정한다(광범위한 치환은 멀쩡한 주소를 망친다). */
+const ADDR_TYPOS = [
+  [/서울(?:윽|욱)별시|서S욕멸시|서우.?특별시/g, "서울특별시"],
+  [/영동포구/g, "영등포구"],
+  [/(?:국희|극희|극회)대로/g, "국회대로"],
+  [/의사당대르/g, "의사당대로"],
+  [/여의드동/g, "여의도동"],
+  [/미의도동/g, "여의도동"],
+];
+
+/** 도로명: "…로/길" 로 끝나는 토큰. "국회대로72길" 처럼 길 번호가 붙는 형태까지 포함. */
+// 끝의 (?!\d*길) 은 "국회대로70길" 처럼 건물번호가 잘려나간 주소가
+// "국회대로 70" 으로 축약돼 엉뚱한 건물에 찍히는 것을 막는다.
+const ROAD_RE = /([가-힣A-Za-z]+(?:대로|로|길))(\d+길)?\s*(\d+(?:-\d+)?)(?!\d*길)/;
+
+export function normalizeAddress(addr) {
+  let s = String(addr || "").trim();
+  if (!s) return null;
+  for (const [re, to] of ADDR_TYPOS) s = s.replace(re, to);
+  // 괄호 이하(법정동·건물명)와 그 뒤 층/호 정보를 통째로 버린다.
+  s = s.replace(/[（(].*$/, "");
+  // 괄호가 없는 경우를 대비해 꼬리의 층/호도 떼어낸다.
+  s = s.replace(/(지하)?\s*\d+\s*(층|호|중)\s*.*$/, "");
+  s = s.replace(/\s+/g, "");
+
+  const sido = sidoOf(s);
+  const gu = guOf(s);
+  if (!sido || !gu) return null;
+  const guName = gu.split(" ")[1];
+  const rest = s.slice(s.indexOf(guName) + guName.length);
+  const m = rest.match(ROAD_RE);
+  if (!m) return null;
+  const road = m[2] ? `${m[1]}${m[2]}` : m[1];
+  // 시/도는 원문 표기를 유지하고(서울특별시 ↔ 서울시), 구·도로명·번호만 표준 공백으로 잇는다.
+  const sidoText = s.slice(0, s.indexOf(guName));
+  return `${sidoText} ${guName} ${road} ${m[3]}`;
+}
