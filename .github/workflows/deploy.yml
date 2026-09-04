@@ -1,8 +1,12 @@
-name: Deploy (Cloudflare)
+name: Deploy (홈서버)
 
 # main 에 머지/푸시되면 자동 배포. 데이터는 git 에 베이크돼 있어(gen:data 안 함)
 # 빌드가 라이브 API 를 안 쳐서 CI 에서 빠르게 끝난다.
 # 데이터 새로고침은 로컬에서 `pnpm gen:data` 후 server/assets 커밋.
+#
+# 서빙 경로: asm.zihado.com → Cloudflare Tunnel → ebs 홈서버(app-uijeong.service)
+# self-hosted 러너가 그 홈서버 위에서 돌기 때문에 빌드 산출물을 로컬에서
+# 옮기고 서비스만 재시작하면 된다(네트워크 전송 없음).
 on:
   push:
     branches: [main]
@@ -18,18 +22,15 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  APP_DIR: /home/ubuntu/apps/uijeong
+  SERVICE: app-uijeong
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, ebs]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-          cache: pnpm
 
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
@@ -40,13 +41,32 @@ jobs:
           # (지도 = Kakao JS 키 필요. 누락 시 지도 로딩 실패 → 타일로 폴백)
           KAKAO_MAP_KEY: ${{ secrets.KAKAO_MAP_KEY }}
           KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          NITRO_PRESET: node-server
         run: pnpm build:baked
 
-      - name: 배포 + 캐시 퍼지
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+      - name: 배포 (롤백용 백업 → 동기화 → 재시작)
         run: |
-          pnpm exec wrangler deploy
-          node scripts/purge-kv.mjs
+          set -euo pipefail
+          test -s .output/server/index.mjs   # 빈 산출물로 서비스를 덮지 않는다
+          rm -rf "$APP_DIR.bak"
+          cp -a "$APP_DIR" "$APP_DIR.bak"
+          # .env.runtime 은 서버에만 있는 런타임 설정 — 절대 지우지 않는다.
+          rsync -a --delete --exclude='.env.runtime' .output/ "$APP_DIR/"
+          sudo systemctl restart "$SERVICE"
+
+      - name: 헬스체크 (실패 시 이전 빌드로 롤백)
+        run: |
+          set -uo pipefail
+          PORT=$(grep -oE '^(NITRO_)?PORT=[0-9]+' "$APP_DIR/.env.runtime" | head -1 | cut -d= -f2)
+          PORT=${PORT:-3000}
+          for i in $(seq 1 20); do
+            if curl -fsS --max-time 3 "http://127.0.0.1:$PORT/api/stats" >/dev/null; then
+              echo "healthy (${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::헬스체크 실패 — 이전 빌드로 롤백합니다"
+          rsync -a --delete --exclude='.env.runtime' "$APP_DIR.bak/" "$APP_DIR/"
+          sudo systemctl restart "$SERVICE"
+          exit 1
