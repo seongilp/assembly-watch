@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { REGION_CENTROID } from "~/lib/region";
+import { esc } from "~/lib/safe";
 
 interface Seg {
   color: string;
@@ -120,7 +121,7 @@ function focusDistrict(id: string) {
 function bubbleHtml(s: RegionStat, active: boolean) {
   const seg = (g: Seg) =>
     g.count > 0
-      ? `<span style="width:${((g.count / s.total) * 100).toFixed(1)}%;background:${g.color};display:inline-block;height:100%;"></span>`
+      ? `<span style="width:${((g.count / s.total) * 100).toFixed(1)}%;background:${esc(g.color)};display:inline-block;height:100%;"></span>`
       : "";
   const ring = active ? "border:2px solid #3182F6;" : "border:1px solid rgba(0,0,0,.08);";
   // 위치(declutter 오프셋 포함)는 오버레이 좌표로 처리 → content 엔 transform 을 주지 않는다.
@@ -130,7 +131,7 @@ function bubbleHtml(s: RegionStat, active: boolean) {
                 background:#fff;${ring}border-radius:10px;padding:5px 7px;
                 box-shadow:0 2px 8px rgba(0,0,0,.25);font-family:Pretendard,sans-serif;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px;margin-bottom:3px;">
-        <span style="font-size:12px;font-weight:800;color:#191F28;">${s.region}</span>
+        <span style="font-size:12px;font-weight:800;color:#191F28;">${esc(s.region)}</span>
         <span style="font-size:10px;font-weight:700;color:#8B95A1;">${s.total}</span>
       </div>
       <div style="display:flex;width:100%;height:7px;border-radius:9999px;overflow:hidden;background:#F2F4F6;">
@@ -146,12 +147,12 @@ function faceHtml(m: MemberPt, focused: boolean) {
   const ring = focused ? "#3182F6" : m.color;
   const bw = focused ? 3 : 2;
   return `
-    <div title="${m.name} · ${m.origin}" style="cursor:pointer;position:relative;
-                width:${size}px;height:${size}px;border-radius:50%;background:${m.color};border:${bw}px solid ${ring};
+    <div title="${esc(m.name)} · ${esc(m.origin)}" style="cursor:pointer;position:relative;
+                width:${size}px;height:${size}px;border-radius:50%;background:${esc(m.color)};border:${bw}px solid ${esc(ring)};
                 box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
                 color:#fff;font:700 ${Math.round(size * 0.4)}px Pretendard,sans-serif;">
-      <span style="position:absolute;">${initial}</span>
-      <img src="/m/${m.id}.webp" alt="${m.name}"
+      <span style="position:absolute;">${esc(initial)}</span>
+      <img src="/m/${esc(m.id)}.webp" alt="${esc(m.name)}"
            style="position:relative;width:100%;height:100%;object-fit:cover;object-position:top;display:block;"
            onerror="this.remove()" />
     </div>`;

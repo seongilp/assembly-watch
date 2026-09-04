@@ -22,5 +22,8 @@
       "pattern": "asm.zihado.com",
       "custom_domain": true
     }
-  ]
+  ],
+  "triggers": {
+    "crons": ["0 0 * * *"]
+  }
 }

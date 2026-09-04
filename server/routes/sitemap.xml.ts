@@ -12,6 +12,7 @@ export default defineEventHandler((event) => {
     "/committees",
     "/schedule",
     "/insights",
+    "/dining",
   ];
   for (const id of Object.keys(members as Record<string, unknown>))
     urls.push(`/members/${id}`);

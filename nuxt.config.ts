@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 
+// node-server 프리뷰 벤치 빌드: KV 없는 환경에서 메모리 캐시 사용
+const isNodeServerBuild = process.env.NITRO_PRESET === "node-server";
+
 // 빌드 전 생성된 member-details.json 으로 의원 상세 프리렌더 라우트 구성
 function memberRoutes(): string[] {
   try {
@@ -9,6 +12,32 @@ function memberRoutes(): string[] {
     return Object.keys(JSON.parse(readFileSync(p, "utf8"))).map(
       (id) => `/members/${id}`,
     );
+  } catch {
+    return [];
+  }
+}
+
+// 식당 상세 페이지 + API 프리렌더 (200개 — 엣지 직배)
+function diningRoutes(): string[] {
+  try {
+    const p = "./server/assets/dining-details.json";
+    if (!existsSync(p)) return [];
+    return Object.keys(JSON.parse(readFileSync(p, "utf8"))).flatMap((id) => [
+      `/dining/${id}`,
+      `/api/dining-detail/${id}`,
+    ]);
+  } catch {
+    return [];
+  }
+}
+
+// 의원별 식당 API 프리렌더 (300명 전체 — 식당 기록 없으면 null 반환)
+function diningMemberRoutes(): string[] {
+  try {
+    const p = "./server/assets/members.json";
+    if (!existsSync(p)) return [];
+    const members = JSON.parse(readFileSync(p, "utf8")) as { id: string }[];
+    return members.map((m) => `/api/dining-members/${m.id}`);
   } catch {
     return [];
   }
@@ -96,20 +125,38 @@ export default defineNuxtConfig({
     },
   },
 
-  // Cloudflare Workers (Static Assets) 배포 프리셋
+  // nuxt 4.5 부터 tsconfig.node.json 이 types:[] 로 생성 — nuxt.config.ts 의 process 등
+  // Node 전역을 위해 @types/node 를 명시 지정한다.
+  typescript: {
+    nodeTsConfig: { compilerOptions: { types: ["node"] } },
+  },
+
+  // Cloudflare Workers (Static Assets) 배포 프리셋.
+  // NITRO_PRESET=node-server 면 ebs 홈서버용 Node 빌드 (cloudflare:workers 를 심으로 앨리어싱).
   nitro: {
-    preset: "cloudflare_module",
+    preset: isNodeServerBuild ? "node-server" : "cloudflare_module",
+    ...(isNodeServerBuild
+      ? {
+          alias: {
+            "cloudflare:workers": new URL("./server/cf-compat.ts", import.meta.url).pathname,
+          },
+        }
+      : {}),
     cloudflare: {
       nodeCompat: true,
       deployConfig: false, // wrangler.jsonc 를 직접 관리
     },
+    experimental: { tasks: true, wasm: true },
+    scheduledTasks: { "0 0 * * *": ["instagram:daily"] },
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
     prerender: {
       crawlLinks: false,
       routes: [
         "/sitemap.xml",
         ...memberRoutes(),
+        ...diningRoutes(),
         ...voteRoutes(),
+        ...diningMemberRoutes(),
         // 위원회 상세(157개)는 일정·회의록이 동적(라이브 API)이라 프리렌더 제외 →
         // 런타임 SSR(routeRules /committees/** swr). 핵심정보는 committees.json 베이크.
         // 베이크 정적 JSON API → 정적 파일로 프리렌더 = CF 엣지 직배(cf=HIT, Worker 미경유).
@@ -124,6 +171,7 @@ export default defineNuxtConfig({
         "/api/districts",
         "/api/shapes",
         "/api/bills-recent",
+        "/api/dining",
       ],
     },
   },
@@ -148,14 +196,18 @@ export default defineNuxtConfig({
       "/quiz": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/schedule": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/dining": { prerender: true, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // 나머지(개별 라우트): SSR HTML 을 엣지 SWR 캐시 + 브라우저 재검증
       "/members/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+      "/dining/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/votes/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       "/committees/**": { swr: 3600, headers: { "cache-control": "public, max-age=0, must-revalidate" } },
       // API: 클라이언트측 호출도 엣지 SWR 캐시
       "/api/stats": { swr: 1800 },
       "/api/members": { swr: 21600 },
       "/api/members/**": { swr: 3600 },
+      "/api/dining-detail/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
+      "/api/dining-members/**": { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
       "/api/committees": { swr: 21600 },
       "/api/bills": { swr: 600 },
       "/api/votes": { swr: 600 },
@@ -166,7 +218,7 @@ export default defineNuxtConfig({
       // content-type·cache-control 을 입혀 브라우저/엣지 캐시까지 보장.
       // (swr 은 정적 미스 시 Worker 폴백용) 데이터는 배포 때만 바뀐다.
       ...Object.fromEntries(
-        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent"].map((n) => [
+        ["graph", "insights", "wealth", "votedata", "vote-insights", "vote-stats", "districts", "shapes", "bills-recent", "dining"].map((n) => [
           `/api/${n}`,
           { swr: 86400, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300, s-maxage=86400" } },
         ]),
@@ -174,10 +226,15 @@ export default defineNuxtConfig({
     },
     nitro: {
       storage: {
-        cache: { driver: "cloudflare-kv-binding", binding: "CACHE" },
+        // node-server 벤치 빌드(KV 바인딩 없음) 시 메모리 캐시로 폴백.
+        // 운영 Cloudflare Workers 에서는 KV 바인딩 사용.
+        cache: isNodeServerBuild
+          ? { driver: "memory" }
+          : { driver: "cloudflare-kv-binding", binding: "CACHE" },
       },
     },
   },
+
 
   shadcn: {
     prefix: "",

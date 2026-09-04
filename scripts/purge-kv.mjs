@@ -5,23 +5,26 @@
  * 참조해 스타일이 깨진다. 배포 직후 캐시를 비워 항상 fresh 하게 유지한다.
  */
 import { execSync } from "node:child_process";
-import { writeFileSync, rmSync } from "node:fs";
+import { writeFileSync, rmSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const NS = "765a7ded764444f1a0284c749c5b9f67"; // CACHE namespace id (wrangler.jsonc)
-const TMP = "/tmp/_kv-purge-keys.json";
+// 예측 가능한 /tmp 고정 경로 대신 실행마다 고유한 임시 디렉터리(symlink 공격 방지)
+const TMP = join(mkdtempSync(join(tmpdir(), "kv-purge-")), "keys.json");
 
 function sh(cmd) {
   return execSync(cmd, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 }
 
 try {
-  const raw = sh(`bunx wrangler kv key list --namespace-id ${NS} --remote`);
+  const raw = sh(`pnpm exec wrangler kv key list --namespace-id ${NS} --remote`);
   const keys = JSON.parse(raw).map((k) => k.name);
   if (!keys.length) {
     console.log("[purge-kv] 비울 KV 캐시 없음");
   } else {
     writeFileSync(TMP, JSON.stringify(keys));
-    sh(`bunx wrangler kv bulk delete ${TMP} --namespace-id ${NS} --remote --force`);
+    sh(`pnpm exec wrangler kv bulk delete ${TMP} --namespace-id ${NS} --remote --force`);
     rmSync(TMP, { force: true });
     console.log(`[purge-kv] KV ${keys.length}개 키 퍼지 완료`);
   }

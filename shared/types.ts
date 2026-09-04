@@ -346,7 +346,6 @@ export interface GraphData {
   }[];
   closeBill: {
     name: string;
-    no: string;
     date: string;
     committee: string;
     procResult: string;
@@ -447,4 +446,104 @@ export interface MemberDetail {
   bills: Bill[];
   votes: MemberVote[];
   votesScanned: number;
+}
+
+// ─── 정치자금 식당 지출 (OhmyNews KA-money 2012~2024) ───
+
+export interface DiningRestaurant {
+  id: string;
+  name: string;
+  cuisine: string;
+  visits: number;
+  amount: number;
+  members: number;
+  gu: string | null;
+}
+/** /api/dining-members/:id 응답 — byMember 에서 id/name/party/origin/matched 제거한 경량 통계 */
+export interface DiningMemberStats {
+  visits: number;
+  amount: number;
+  topRestaurants: { name: string; visits: number }[];
+  cuisineMix: Record<string, number>;
+  purposeMix: Record<string, number>;
+  districtRate: number | null;
+}
+export interface DiningBreakdownRow {
+  key: string;
+  n: number;
+  avgMeal: number;
+  topCuisine: string;
+  topRestaurant: string;
+}
+export interface DiningDistrictMember {
+  id: string;
+  name: string;
+  party: string;
+  origin: string;
+  rate: number;
+}
+export interface DiningGroupBreakdown {
+  party: Record<string, number>;
+  age: Record<string, number>;
+  gender: Record<string, number>;
+  zodiac: Record<string, number>;
+  wealth: Record<string, number>;
+  pyeong: Record<string, number>;
+}
+export interface DiningMapPoint {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  cuisine: string;
+  gu: string | null;
+  visits: number;
+  amount: number;
+  groups: DiningGroupBreakdown;
+}
+
+export interface DiningMemberVisit {
+  id: string;
+  name: string;
+  party: string;
+  visits: number;
+  amount: number;
+}
+
+export interface DiningRestaurantDetail {
+  id: string;
+  name: string;
+  cuisine: string;
+  gu: string | null;
+  rank: number;
+  visits: number;
+  amount: number;
+  lat: number | null;
+  lng: number | null;
+  members: DiningMemberVisit[];
+  byYear: { year: number; visits: number; amount: number }[];
+}
+export interface DiningData {
+  basis: string;
+  source: { name: string; url: string };
+  generatedAt: string;
+  years: number[];
+  coverage: { rows: number; matchedMembers: number; addrYears: number[]; mapPoints: number };
+  restaurants: DiningRestaurant[];
+  mapPoints: DiningMapPoint[];
+  cuisine: { type: string; visits: number; amount: number }[];
+  breakdowns: {
+    byParty: DiningBreakdownRow[];
+    byAge: DiningBreakdownRow[];
+    byGender: DiningBreakdownRow[];
+    byZodiac: DiningBreakdownRow[];
+    byWealth: DiningBreakdownRow[];
+    byPyeong: DiningBreakdownRow[];
+  };
+  district: {
+    addrCoverage: number;
+    onlyInDistrict: DiningDistrictMember[];
+    neverInDistrict: DiningDistrictMember[];
+    proportional: { id: string; name: string }[];
+  };
 }

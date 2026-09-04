@@ -12,9 +12,10 @@ import {
   Crown,
   ChevronDown,
 } from "lucide-vue-next";
-import type { MemberDetail, Insights } from "#shared/types";
+import type { MemberDetail, Insights, DiningMemberStats } from "#shared/types";
 import { partyColor } from "~/lib/party";
 import { formatDate, voteStyle } from "~/lib/format";
+import { safeUrl } from "~/lib/safe";
 
 const route = useRoute();
 const id = computed(() => String(route.params.id));
@@ -32,6 +33,11 @@ const [{ data: insights }, { data: vinsights }, { data, pending }] = await Promi
   vinsightsReq,
   detailReq,
 ]);
+
+const { data: myDining } = await useFetch<DiningMemberStats | null>(
+  `/api/dining-members/${id.value}`,
+  { key: `dining-m-${id.value}` },
+);
 
 const member = computed(() => data.value?.member ?? undefined);
 
@@ -106,7 +112,7 @@ const contacts = computed(() => {
   return [
     m.tel && { icon: Phone, label: m.tel, href: `tel:${m.tel}` },
     m.email && { icon: Mail, label: m.email, href: `mailto:${m.email}` },
-    m.homepage && { icon: Globe, label: "홈페이지", href: m.homepage },
+    m.homepage && safeUrl(m.homepage) && { icon: Globe, label: "홈페이지", href: safeUrl(m.homepage)! },
   ].filter(Boolean) as { icon: any; label: string; href: string }[];
 });
 </script>
@@ -229,7 +235,7 @@ const contacts = computed(() => {
             <ul class="divide-y divide-toss-gray-100">
               <li v-for="b in bills?.rows" :key="b.id">
                 <a
-                  :href="b.link"
+                  :href="safeUrl(b.link)"
                   target="_blank"
                   class="group flex items-start justify-between gap-3 py-3"
                 >
@@ -328,6 +334,15 @@ const contacts = computed(() => {
       <ClientOnly>
         <MemberTwins :member-id="id" />
       </ClientOnly>
+
+      <!-- 정치자금 식당 미니 카드 -->
+      <section v-if="myDining && myDining.visits" class="mt-4 rounded-2xl border border-toss-gray-200 bg-card p-5">
+        <h2 class="font-bold text-toss-gray-900 mb-3">정치자금으로 자주 간 식당</h2>
+        <ul class="space-y-1 text-sm">
+          <li v-for="r in myDining.topRestaurants" :key="r.name" class="flex justify-between"><span class="font-semibold">{{ r.name }}</span><span class="text-toss-gray-500">{{ r.visits }}회</span></li>
+        </ul>
+        <NuxtLink to="/dining" class="mt-3 inline-block text-[13px] font-semibold text-toss-blue">정치자금 맛집 전체 보기 →</NuxtLink>
+      </section>
     </template>
 
     <div v-else class="space-y-4">

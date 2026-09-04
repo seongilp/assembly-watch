@@ -194,6 +194,11 @@ export default defineCachedEventHandler(
     if (!billId) {
       throw createError({ statusCode: 400, statusMessage: "billId 필요" });
     }
+    // 베이크 인덱스 키·라이브 API 파라미터·캐시(KV) 키로 쓰이는 값 — 형식을 검증해
+    // 임의 문자열이 KV 엔트리를 무한 생성하거나 upstream 쿼리로 흘러가지 않게 한다.
+    if (!/^[\w-]{1,64}$/.test(billId)) {
+      throw createError({ statusCode: 400, statusMessage: "invalid billId" });
+    }
     return fromBaked(billId) ?? (await fromLive(billId));
   },
   {

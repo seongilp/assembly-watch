@@ -2,6 +2,7 @@
 import { Map as MapIcon, X } from "lucide-vue-next";
 import type { WealthData } from "#shared/types";
 import { normalizeParty, partyColor } from "~/lib/party";
+import { esc } from "~/lib/safe";
 
 // 의원 부동산(본인·배우자 주택) 시군구 분포 — 축소: 채수 버블 / 확대: 보유 의원 얼굴(의원 지도와 동일 UX).
 // 좌표·구별 명단은 빌드타임 베이크(homesMap). 개인정보 고려로 위치는 시군구 중심점까지만(동·아파트 핀 없음).
@@ -86,7 +87,7 @@ function bubbleHtml(gu: string, count: number, isActive: boolean) {
                 color:#fff;font-family:Pretendard,sans-serif;text-align:center;line-height:1.05;">
       <div>
         <div style="font-size:${Math.max(10, Math.round(size * 0.21))}px;font-weight:800;">${count}</div>
-        <div style="font-size:9px;font-weight:600;opacity:.95;">${gu.split(" ").pop()}</div>
+        <div style="font-size:9px;font-weight:600;opacity:.95;">${esc(gu.split(" ").pop() ?? "")}</div>
       </div>
     </div>`;
 }
@@ -96,12 +97,12 @@ function faceHtml(m: { id: string; name: string; party: string }, gu: string, fo
   const color = partyColor(m.party);
   const ring = focused ? "#191F28" : color;
   return `
-    <div title="${m.name} · ${gu}" style="cursor:pointer;position:relative;
+    <div title="${esc(m.name)} · ${esc(gu)}" style="cursor:pointer;position:relative;
                 width:36px;height:36px;border-radius:50%;background:${color};border:2px solid ${ring};
                 box-shadow:0 1px 5px rgba(0,0,0,.35);overflow:hidden;display:grid;place-items:center;
                 color:#fff;font:700 14px Pretendard,sans-serif;">
-      <span style="position:absolute;">${initial}</span>
-      <img src="/m/${m.id}.webp" alt="${m.name}"
+      <span style="position:absolute;">${esc(initial)}</span>
+      <img src="/m/${esc(m.id)}.webp" alt="${esc(m.name)}"
            style="position:relative;width:100%;height:100%;object-fit:cover;object-position:top;display:block;"
            onerror="this.remove()" />
     </div>`;
