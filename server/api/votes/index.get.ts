@@ -2,7 +2,15 @@ import type { H3Event } from "h3";
 import type { VoteSummary, Paged } from "#shared/types";
 import votesList from "../../assets/votes-list.json";
 
-const ALL = votesList as VoteSummary[];
+/**
+ * 열린국회 API는 procDt 정렬을 보장하지 않는다 — 스냅샷을 최신순으로 한 번 정렬해 둔다.
+ * (동일 일자는 의안번호 내림차순 = 사실상 최신 접수순)
+ */
+const ALL = [...(votesList as VoteSummary[])].sort(
+  (a, b) =>
+    (b.procDt ?? "").localeCompare(a.procDt ?? "") ||
+    (b.billNo ?? "").localeCompare(a.billNo ?? ""),
+);
 
 /**
  * 본회의 표결 목록 — 베이크된 스냅샷(전체 의안)에서 서빙. 라이브 API 없음.
@@ -28,7 +36,8 @@ export default defineCachedEventHandler(
     const { q, votedOnly, dissent, page, size } = voteListParams(event);
 
     let rows = ALL;
-    if (votedOnly) rows = rows.filter((v) => v.total != null);
+    // 철회/폐기 안건은 total 이 0 으로 내려온다 — null 체크만으론 걸러지지 않는다.
+    if (votedOnly) rows = rows.filter((v) => (v.total ?? 0) > 0);
     if (dissent) rows = rows.filter((v) => (v.no ?? 0) > 0);
     if (q)
       rows = rows.filter(
