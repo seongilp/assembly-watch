@@ -1,8 +1,21 @@
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import tailwindcss from "@tailwindcss/vite";
 
 // node-server 프리뷰 벤치 빌드: KV 없는 환경에서 메모리 캐시 사용
 const isNodeServerBuild = process.env.NITRO_PRESET === "node-server";
+
+// satori 의 텍스트 셰이핑용 harfbuzz wasm. hb.js 가 같은 디렉터리의 hb.wasm 을
+// 런타임에 fs 로 읽는데, nft 트레이스는 .js 만 잡아내 배포본에서 ENOENT 로 죽는다.
+// (pnpm 이라 최상위에서는 resolve 되지 않아 satori 를 기준으로 찾는다.)
+function harfbuzzWasm(): string[] {
+  try {
+    const req = createRequire(import.meta.url);
+    return [createRequire(req.resolve("satori")).resolve("harfbuzzjs/hb.wasm")];
+  } catch {
+    return [];
+  }
+}
 
 // 빌드 전 생성된 member-details.json 으로 의원 상세 프리렌더 라우트 구성
 function memberRoutes(): string[] {
@@ -146,6 +159,7 @@ export default defineNuxtConfig({
       nodeCompat: true,
       deployConfig: false, // wrangler.jsonc 를 직접 관리
     },
+    externals: { traceInclude: harfbuzzWasm() },
     experimental: { tasks: true, wasm: true },
     scheduledTasks: { "0 0 * * *": ["instagram:daily"] },
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)

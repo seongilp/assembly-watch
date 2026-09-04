@@ -26,20 +26,32 @@ GET https://graph.facebook.com/v21.0/oauth/access_token
 ```
 이후 `GET /me/accounts` 로 받은 **페이지 액세스 토큰**은 (장기 사용자 토큰에서 파생 시) 만료되지 않는다 → 이 값을 **IG_ACCESS_TOKEN** 으로 사용. 이 방식이면 토큰 갱신 cron 이 불필요하다.
 
-## 6. Worker 시크릿 등록
+## 6. 시크릿 등록 (홈서버)
+
+서빙이 Cloudflare Workers → ebs 홈서버로 옮겨졌으므로 wrangler secret 이 아니라
+서버의 런타임 env 파일에 넣는다. 이 파일은 배포 rsync 에서 제외되므로 덮어써지지 않는다.
+
 ```
-pnpm exec wrangler secret put IG_USER_ID
-pnpm exec wrangler secret put IG_ACCESS_TOKEN
-pnpm exec wrangler secret put IG_PREVIEW_TOKEN   # 드라이런 가드(임의 난수)
+ssh ebs
+sudo -u ubuntu tee -a ~/apps/uijeong/.env.runtime >/dev/null <<'EOF'
+IG_USER_ID=<발급받은 값>
+IG_ACCESS_TOKEN=<발급받은 값>
+IG_PREVIEW_TOKEN=<임의 난수>
+EOF
+sudo systemctl restart app-uijeong
 ```
 
 ## 7. 게시 확인
 - 드라이런: `curl -H "Authorization: Bearer <IG_PREVIEW_TOKEN>" https://asm.zihado.com/api/ig/preview` → slug·캡션·imageUrl 확인 (토큰은 헤더로만 전달 — URL 에 넣으면 observability 로그에 기록됨)
 - 이미지: `https://asm.zihado.com/og/terms.png`
 - 앱은 개발 모드여도 **본인 계정** 게시는 App Review 없이 동작한다.
+- OG 카드는 satori(레이아웃) + @resvg/resvg-js(PNG) 로 렌더한다. workers-og 는
+  Workers 전용 yoga wasm 때문에 node 에서 로드되지 않아 걷어냈다.
 
 ## 동작 방식 요약
-- 매일 09:00 KST(`0 0 * * *` UTC) Cloudflare Cron 이 `server/tasks/instagram/daily.ts` 실행.
+- 매일 09:00 KST(`0 0 * * *` UTC) Nitro 스케줄러가 `server/tasks/instagram/daily.ts` 실행.
+  (node-server 프리셋이 scheduledTasks 를 자체 처리한다 — Workers Cron 이 아니다.
+  실행 여부는 `journalctl -u app-uijeong | grep instagram:daily` 로 확인)
 - `insights.json` 랭킹 덱에서 KV 포인터(`ig:pointer`) 순번의 펀팩트 1개 선택 → `/og/<slug>.png` 1080² PNG + 템플릿 캡션 → Graph API 2단계 게시.
 - 게시 성공 후에만 포인터 advance + `ig:lastPosted` 기록(같은 날 중복 게시 방지).
 - 콘텐츠 덱 순서·구성은 `server/utils/instagram/catalog.ts` 의 `DECK` 에서만 조정.

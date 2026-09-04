@@ -1,5 +1,5 @@
 import { buildCatalog } from "../../utils/instagram/catalog";
-import { renderPostResponse } from "../../utils/instagram/render";
+import { renderPostPng } from "../../utils/instagram/render";
 
 export default defineEventHandler(async (event) => {
   // 라우트는 /og/:slug (전체 세그먼트 파라미터). 요청 URL 은 /og/<slug>.png 이므로
@@ -9,9 +9,8 @@ export default defineEventHandler(async (event) => {
   const spec = buildCatalog().find((s) => s.slug === slug);
   if (!spec) throw createError({ statusCode: 404, statusMessage: "unknown slug" });
 
-  const res = await renderPostResponse(spec);
-  const buf = await res.arrayBuffer();
+  const png = await renderPostPng(spec);
   setHeader(event, "content-type", "image/png");
   setHeader(event, "cache-control", "public, max-age=86400");
-  return new Uint8Array(buf);
+  return png;
 });
