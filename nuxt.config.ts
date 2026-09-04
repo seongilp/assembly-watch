@@ -161,7 +161,9 @@ export default defineNuxtConfig({
     },
     externals: { traceInclude: harfbuzzWasm() },
     experimental: { tasks: true, wasm: true },
-    scheduledTasks: { "0 0 * * *": ["instagram:daily"] },
+    // 인스타 자동 게시는 비활성화. 태스크·렌더러 코드는 남겨두되 스케줄만 끈다
+    // (켜려면 아래 줄을 되살리고 .env.runtime 에 IG_USER_ID/IG_ACCESS_TOKEN 을 넣으면 된다).
+    // scheduledTasks: { "0 0 * * *": ["instagram:daily"] },
     // 의원 상세 300개를 빌드타임 프리렌더 → 정적 에셋 엣지 직배(cf=HIT)
     prerender: {
       crawlLinks: false,
