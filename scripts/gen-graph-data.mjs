@@ -663,7 +663,7 @@ if (closeIdx >= 0) {
     else if (c === "B") blank.push(mini);
   }
   closeBill = {
-    name: b.name, no: b.no, date: b.date, committee: b.committee, procResult: b.procResult,
+    name: b.name, date: b.date, committee: b.committee, procResult: b.procResult,
     y: b.y, n: b.n, b: b.b, yes, no, blank,
   };
 }
