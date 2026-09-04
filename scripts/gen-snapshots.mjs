@@ -106,6 +106,12 @@ async function main() {
     all.push(...res.rows.map(mapVoteSummary));
     if (all.length >= res.total || res.rows.length === 0) break;
   }
+  // 열린국회 API는 procDt 정렬을 보장하지 않는다 — 최신순으로 베이크한다.
+  all.sort(
+    (a, b) =>
+      (b.procDt ?? "").localeCompare(a.procDt ?? "") ||
+      (b.billNo ?? "").localeCompare(a.billNo ?? ""),
+  );
   save("votes-list.json", all);
   console.log(`[gen-snapshots] votes-list: ${all.length}건`);
 }
